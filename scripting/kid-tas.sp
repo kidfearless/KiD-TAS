@@ -31,7 +31,6 @@ bool g_bLate;
 
 public void OnPluginStart()
 {
-	RegConsoleCmd("sm_tas", Command_Tas, "opens tas");
 	RegConsoleCmd("sm_tasmenu", Command_TasMenu, "opens tas menu");
 	RegConsoleCmd("sm_timescale", Command_TimeScale, "sets timescale");
 
@@ -66,13 +65,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnClientPutInServer(int client)
 {
 	Client.Create(client).OnPutInServer();
-}
-
-public Action Command_Tas(int client, int args)
-{
-	Client cl = new Client(client);
-	cl.Enabled = !cl.Enabled;
-	return Plugin_Handled;
 }
 
 public Action Command_TasMenu(int client, int args)

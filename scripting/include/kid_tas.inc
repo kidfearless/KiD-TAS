@@ -146,6 +146,11 @@ methodmap Client < CBasePlayer
 		}
 		public set(float newVal)
 		{
+			if(!this.Enabled)
+			{
+				return;
+			}
+			
 			if(newVal < 0.0)
 			{
 				_TimeScale[this.Index] = 0.1;
