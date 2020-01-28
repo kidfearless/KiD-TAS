@@ -3,6 +3,8 @@
 #endif
 #define _kid_tas_included
 
+#define PERFSPEEDHACK 227.6
+
 // private members
 static bool _Enabled[MAXPLAYERS+1];
 static float _LastGain[MAXPLAYERS+1];
@@ -12,6 +14,7 @@ static bool _StrafeHack[MAXPLAYERS+1] = {true, ...};
 static bool _FastWalk[MAXPLAYERS+1] = {true, ...};
 static bool _AutoJump[MAXPLAYERS+1] = {true, ...};
 static bool _ShouldJump[MAXPLAYERS+1];
+static bool _FastWalkDirection[MAXPLAYERS+1];
 static int _Buttons[MAXPLAYERS+1];
 
 methodmap Client < CBasePlayer
@@ -239,9 +242,16 @@ methodmap Client < CBasePlayer
 		_LastGain[this.Index] = flAngleGain;
 	}
 
-	public void DoFastWalk()
+	public void DoFastWalk(float vel[3])
 	{
+		bool direction = _FastWalkDirection[this.Index];
 
+		if(this.Buttons & IN_FORWARD && !(this.Buttons & (IN_MOVELEFT | IN_MOVERIGHT)))
+		{
+			vel[1] = direction ? PERFSPEEDHACK : -PERFSPEEDHACK;
+		}
+
+		_FastWalkDirection[this.Index] = !direction;
 	}
 
 	public void DoAutoJump(int& buttons)
@@ -277,7 +287,7 @@ methodmap Client < CBasePlayer
 		}
 		if(this.FastWalk)
 		{
-			this.DoFastWalk();
+			this.DoFastWalk(vel);
 		}
 		if(this.AutoJump)
 		{
