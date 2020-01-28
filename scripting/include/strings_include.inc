@@ -61,6 +61,11 @@ int Contains(const char[] substr, bool caseSensitive = true)
 	return StrContains(this.StringValue, substr, caseSensitive);
 }
 
+bool Includes(const char[] substr, bool caseSensitive = true)
+{
+	return StrContains(this.StringValue, substr, caseSensitive) != -1;
+}
+
 bool Equals(const char[] str2, bool caseSensitive = true)
 {
 	return (strcmp(this.StringValue, str2, caseSensitive) == 0);

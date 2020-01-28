@@ -1,10 +1,15 @@
+#if defined __tas_included
+	#endinput
+#endif
+#define __tas_included
+
 #include <sourcemod>
+#include <sdkhooks>
+#include <shavit>
+
 #include <string_test>
 #include <convar_class>
 #include <thelpers/thelpers>
-#include <kid_tas>
-
-#include <sdkhooks>
 
 public Plugin myinfo = 
 {
@@ -22,295 +27,7 @@ ConVar sv_clockcorrection_msecs;
 Convar g_cDefaultCheats;
 bool g_bLate;
 
-
-bool _Enabled[MAXPLAYERS+1];
-float _LastGain[MAXPLAYERS+1];
-float _TimeScale[MAXPLAYERS+1] = {1.0, ...};
-bool _AutoStrafe[MAXPLAYERS+1] = {true, ...};
-bool _StrafeHack[MAXPLAYERS+1] = {true, ...};
-bool _FastWalk[MAXPLAYERS+1] = {true, ...};
-bool _AutoJump[MAXPLAYERS+1] = {true, ...};
-int _Buttons[MAXPLAYERS+1];
-
-methodmap Client < CBasePlayer
-{
-	public Client(int client)
-	{
-		return view_as<Client>(client);
-	}
-
-	public static Client Create(int client)
-	{
-		return new Client(client);
-	}
-
-	property int Index
-	{
-		public get()
-		{
-			return view_as<int>(this);
-		}
-	}
-
-	property bool Enabled
-	{
-		public get()
-		{
-			return _Enabled[this.Index];
-		}
-		public set(bool newVal)
-		{
-			_Enabled[this.Index] = newVal;
-		}
-	}
-	
-	property int Buttons
-	{
-		public get()
-		{
-			return _Buttons[this.Index];
-		}
-		public set(int newVal)
-		{
-			_Buttons[this.Index] = newVal;
-		}
-	}
-
-	property bool OnGround
-	{
-		public get()
-		{
-			return (!(this.Buttons & IN_JUMP) && (GetEntityFlags(this.Index) & FL_ONGROUND));
-		}
-	}
-
-	property bool AutoJump
-	{
-		public get()
-		{
-			return _AutoJump[this.Index];
-		}
-		public set(bool newVal)
-		{
-			_AutoJump[this.Index] = newVal;
-		}
-	}
-
-	property bool StrafeHack
-	{
-		public get()
-		{
-			return _StrafeHack[this.Index];
-		}
-		public set(bool newVal)
-		{
-			_StrafeHack[this.Index] = newVal;
-		}
-	}
-
-	property bool AutoStrafe
-	{
-		public get()
-		{
-			return _AutoStrafe[this.Index];
-		}
-		public set(bool newVal)
-		{
-			_AutoStrafe[this.Index] = newVal;
-		}
-	}
-
-	property bool FastWalk
-	{
-		public get()
-		{
-			return _FastWalk[this.Index];
-		}
-		public set(bool newVal)
-		{
-			_FastWalk[this.Index] = newVal;
-		}
-	}
-
-	property float LastGain
-	{
-		public get()
-		{
-			return _LastGain[this.Index];
-		}
-		public set(float newVal)
-		{
-			_LastGain[this.Index] = newVal;
-		}
-	}
-
-	property float TimeScale
-	{
-		public get()
-		{
-			return _TimeScale[this.Index];
-		}
-		public set(float newVal)
-		{
-			if(newVal < 0.0)
-			{
-				_TimeScale[this.Index] = 0.1;
-			}
-			else if(newVal > 1.0)
-			{
-				_TimeScale[this.Index] = 1.0;
-			}
-			else
-			{
-				_TimeScale[this.Index] = newVal;
-			}
-
-			string val;
-			val.FromFloat(_TimeScale[this.Index]);
-
-			host_timescale.ReplicateToClient(this.Index, val.StringValue);
-		}
-	}
-
-	
-	public void OpenMenu()
-	{
-		if(!this.Enabled)
-		{
-			return;
-		}
-		Menu menu = new Menu(MenuHandler_TAS);
-
-		menu.SetTitle("TAS Menu\n");
-
-		string buffer;
-
-		menu.AddItem("cp", "Checkpoint Menu");
-
-		buffer.Format("--Timescale\nCurrent Timescale: %.1f", this.TimeScale + 0.001);
-
-		menu.AddItem("--", buffer.StringValue, (this.TimeScale == 0.0 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT));
-
-
-		menu.AddItem("++", "++Timescale", (this.TimeScale == 1.0 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT));
-
-
-		menu.AddItem("jmp", (this.AutoJump ? " [X] Auto-jump from start zone?" : "[ ] Auto-jump from start zone?"));
-
-
-		menu.AddItem("as", (this.AutoStrafe ? "[X] Auto-Strafe" : "[ ] Auto-Strafe"));
-
-		menu.AddItem("sh", (this.StrafeHack ? "[X] Strafe hack" : "[ ] Strafe Hack"));
-
-		menu.Pagination = MENU_NO_PAGINATION;
-		menu.ExitButton = true;
-		menu.Display(this.Index, MENU_TIME_FOREVER);
-	}
-
-	public void ResetVariables()
-	{
-		this.TimeScale = 1.0;
-		this.LastGain = 0.0;
-		this.Enabled = false;
-		this.StrafeHack = true;
-		this.AutoStrafe = true;
-		this.FastWalk = true;
-	}
-
-	public void ToggleTAS(int args)
-	{
-		this.Enabled = !this.Enabled;
-		if(this.Enabled)
-		{
-			sv_cheats.ReplicateToClient(this.Index, "2");
-			PrintToChat(this.Index, "For a better experience change the following convars:");
-			PrintToChat(this.Index, "cl_clock_correction 0");
-			PrintToChat(this.Index, "cl_clock_correction_force_server_tick 0");
-			PrintToConsole(this.Index, "cl_clock_correction_force_server_tick 0;cl_clock_correction 0;");
-			this.OpenMenu();
-		}
-		else
-		{
-			string convar;
-			convar.FromConVar(g_cDefaultCheats);
-			sv_cheats.ReplicateToClient(this.Index, convar.StringValue);
-			host_timescale.ReplicateToClient(this.Index, "1");
-		}
-	}
-
-	public void OnTick(int& buttons, float vel[3], float angles[3], int mouse[2])
-	{
-		this.Buttons = buttons;
-		if(!this.IsAlive || !this.Enabled)
-		{
-			return;
-		}
-
-		// might investigate this again
-		// SetEntProp(this.Index, Prop_Data, "m_nSimulationTick", GetGameTickCount());
-	
-		float vecvelocity[3];
-		GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
-		
-		float perfAngleChange = RadToDeg(ArcTangent2(vecvelocity[1], vecvelocity[0]));
-		
-		float perfAngleDiff = NormalizeAngle(angles[1] - perfAngleChange);
-
-
-		// if autostrafe and either not on the ground or on the ground and holding jump
-		if(this.AutoStrafe && !this.OnGround)
-		{
-			vel[1] = 450.0;
-	
-			if (perfAngleDiff > 0.0)
-			{
-				vel[1] = -450.0;
-			}	
-		}
-		
-		// Check whether the player has tried to move their mouse more than the strafer
-		float flAngleGain = RadToDeg(ArcTangent(vel[1] / vel[0]));
-		
-		// This check tells you when the mouse player movement is higher than the autostrafer one, and decide to put it or not
-		if (!((this.LastGain < 0.0 && flAngleGain < 0.0) || (this.LastGain > 0.0 && flAngleGain > 0.0))) 
-		{
-			if(this.StrafeHack && !this.OnGround)
-			{
-				angles[1] -= perfAngleDiff;
-			}
-		}
-		
-		this.LastGain = flAngleGain;
-	}
-
-	public void OnPreThinkPost()
-	{
-		if(this.Enabled)
-		{
-			sv_clockcorrection_msecs.IntValue = 0;
-			cl_clock_correction_force_server_tick.IntValue = -999;
-			host_timescale.FloatValue = this.TimeScale;
-		}
-		else
-		{
-			host_timescale.RestoreDefault();
-			cl_clock_correction_force_server_tick.RestoreDefault();
-			sv_clockcorrection_msecs.RestoreDefault();
-		}
-	}
-
-	public void OnPutInServer()
-	{
-		SDKHook(this.Index, SDKHook_PreThinkPost, OnPreThinkPost);
-		this.ResetVariables();
-	}
-}
-
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
-{
-	g_bLate = late;
-	return APLRes_Success;
-}
+#include <kid_tas>
 
 public void OnPluginStart()
 {
@@ -340,6 +57,12 @@ public void OnPluginStart()
 	}
 }
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	g_bLate = late;
+	return APLRes_Success;
+}
+
 public void OnClientPutInServer(int client)
 {
 	Client.Create(client).OnPutInServer();
@@ -347,7 +70,8 @@ public void OnClientPutInServer(int client)
 
 public Action Command_Tas(int client, int args)
 {
-	Client.Create(client).ToggleTAS(args);
+	Client cl = new Client(client);
+	cl.Enabled = !cl.Enabled;
 	return Plugin_Handled;
 }
 
@@ -387,7 +111,6 @@ public void OnPreThinkPost(int client)
 {
 	Client.Create(client).OnPreThinkPost();
 }
-
 
 public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 {
@@ -445,6 +168,21 @@ public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 	return 0;
 }
 
+public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity, int data)
+{
+	if(type == Zone_Start)
+	{
+		Client.Create(client).OnLeaveStartZone();
+	}
+}
+
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
+{
+	string_128 special;
+	Shavit_GetStyleStrings(newstyle, sSpecialString, special.StringValue, special.Size());
+
+	Client.Create(client).Enabled = special.Includes("TAS");
+}
 
 // Stocks
 public float NormalizeAngle(float angle)

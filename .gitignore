@@ -5,6 +5,7 @@
 !scripting/include/strings_include.inc
 !scripting/include/kid_tas.inc
 !scripting/include/convar_class.inc
+!scripting/include/shavit.inc
 !scripting/kid-tas.sp
 !.gitignore
 # Except for whitelisted files:
