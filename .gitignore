@@ -1,0 +1,10 @@
+# Ignore everything:
+*.*
+!scripting/include/thelpers/**
+!scripting/include/string_test.inc
+!scripting/include/strings_include.inc
+!scripting/include/kid_tas.inc
+!scripting/include/convar_class.inc
+!scripting/kid-tas.sp
+!.gitignore
+# Except for whitelisted files:
