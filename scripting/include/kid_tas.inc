@@ -65,7 +65,8 @@ methodmap Client < CBasePlayer
 		{
 			if(_Enabled[this.Index] != newVal)
 			{
-				ToggleTAS(this, newVal);
+				_Enabled[this.Index] = newVal;
+				ToggleTAS(this);
 			}
 		}
 	}
@@ -176,6 +177,8 @@ methodmap Client < CBasePlayer
 	{
 		if(!this.Enabled)
 		{
+			// DebugPrint("OpenMenu Not Enabled");
+
 			return;
 		}
 		Menu menu = new Menu(MenuHandler_TAS);
@@ -194,7 +197,7 @@ methodmap Client < CBasePlayer
 		menu.AddItem("++", "++Timescale", (this.TimeScale == 1.0 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT));
 
 
-		menu.AddItem("jmp", (this.AutoJump ? " [X] Auto-jump from start zone?" : "[ ] Auto-jump from start zone?"));
+		menu.AddItem("jmp", (this.AutoJump ? "[X] Auto-jump from start zone?" : "[ ] Auto-jump from start zone?"));
 
 
 		menu.AddItem("as", (this.AutoStrafe ? "[X] Auto-Strafe" : "[ ] Auto-Strafe"));
@@ -273,6 +276,7 @@ methodmap Client < CBasePlayer
 		this.Buttons = buttons;
 		if(!this.IsAlive || !this.Enabled)
 		{
+			// DebugPrint("OnTick Not Enabled");
 			return;
 		}
 		
@@ -331,9 +335,8 @@ methodmap Client < CBasePlayer
 	}
 }
 
-void ToggleTAS(Client client, bool newVal)
+void ToggleTAS(Client client)
 {
-	client.Enabled = newVal;
 	if(client.Enabled)
 	{
 		sv_cheats.ReplicateToClient(client.Index, "2");
@@ -351,3 +354,15 @@ void ToggleTAS(Client client, bool newVal)
 		host_timescale.ReplicateToClient(client.Index, "1");
 	}
 }
+
+#define DEBUG 0
+#if DEBUG == 1
+
+void DebugPrint(const char[] format, any args ...)
+{
+	string buffer;
+	VFormat(buffer.StringValue, buffer.Size(), format, 2);
+	PrintToChatAll(buffer.StringValue);
+}
+
+#endif 
