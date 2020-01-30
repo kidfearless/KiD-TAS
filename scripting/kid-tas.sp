@@ -21,7 +21,7 @@ public Plugin myinfo =
 };
 
 ConVar sv_cheats;
-ConVar host_timescale;
+stock ConVar host_timescale;
 ConVar cl_clock_correction_force_server_tick;
 ConVar sv_clockcorrection_msecs;
 Convar g_cDefaultCheats;
@@ -35,7 +35,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_timescale", Command_TimeScale, "sets timescale");
 
 	sv_cheats = FindConVar("sv_cheats");
-	host_timescale = FindConVar("host_timescale");
+	// host_timescale = FindConVar("host_timescale");
 	cl_clock_correction_force_server_tick = FindConVar("cl_clock_correction_force_server_tick");
 	sv_clockcorrection_msecs = FindConVar("sv_clockcorrection_msecs");
 
@@ -95,13 +95,17 @@ public Action Command_TimeScale(int client, int args)
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
-	Client.Create(client).OnTick(buttons, vel, angles, mouse);
-	return Plugin_Continue;
+	return Client.Create(client).OnTick(buttons, vel, angles, mouse);
 }
 
 public void OnPreThinkPost(int client)
 {
 	Client.Create(client).OnPreThinkPost();
+}
+
+public void OnPostThink(int client)
+{
+	Client.Create(client).OnPostThink();
 }
 
 public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)

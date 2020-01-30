@@ -16,6 +16,8 @@ static bool _AutoJump[MAXPLAYERS+1] = {true, ...};
 static bool _ShouldJump[MAXPLAYERS+1];
 static bool _FastWalkDirection[MAXPLAYERS+1];
 static int _Buttons[MAXPLAYERS+1];
+stock static int _LastTickCount[MAXPLAYERS+1];
+static float _NextFrame[MAXPLAYERS+1];
 
 methodmap Client < CBasePlayer
 {
@@ -36,6 +38,18 @@ methodmap Client < CBasePlayer
 		public get()
 		{
 			return view_as<int>(this);
+		}
+	}
+
+	property MoveType Movetype
+	{
+		public get()
+		{
+			return GetEntityMoveType(this.Index);
+		}
+		public set(MoveType type)
+		{
+			SetEntityMoveType(this.Index, type);
 		}
 	}
 
@@ -81,6 +95,34 @@ methodmap Client < CBasePlayer
 		{
 			_Buttons[this.Index] = newVal;
 		}
+	}
+
+	property float NextFrameTime
+	{
+		public get()
+		{
+			return _NextFrame[this.Index];
+		}
+		public set(float newVal)
+		{
+			_NextFrame[this.Index] = newVal;
+		}
+	}
+
+	property float Speed
+	{
+		public get()
+		{
+			float vecvelocity[3];
+			GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
+			vecvelocity[2] = 0.0;
+			return GetVectorLength(vecvelocity);
+		}
+	}
+
+	public void GetVelocity(float vecvelocity[3])
+	{
+		GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
 	}
 
 	property bool OnGround
@@ -164,14 +206,18 @@ methodmap Client < CBasePlayer
 			{
 				_TimeScale[this.Index] = newVal;
 			}
-
-			string val;
-			val.FromFloat(_TimeScale[this.Index]);
-
-			host_timescale.ReplicateToClient(this.Index, val.StringValue);
+			
+			
+			// Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);			
 		}
 	}
 
+	public void PrintToConsole(const char[] format, any ...)
+	{
+		string buffer;
+		VFormat(buffer.StringValue, buffer.Size(), format, 3);
+		PrintToConsole(this.Index, buffer.StringValue);
+	}
 	
 	public void OpenMenu()
 	{
@@ -181,6 +227,7 @@ methodmap Client < CBasePlayer
 
 			return;
 		}
+
 		Menu menu = new Menu(MenuHandler_TAS);
 
 		menu.SetTitle("TAS Menu\n");
@@ -191,10 +238,10 @@ methodmap Client < CBasePlayer
 
 		buffer.Format("--Timescale\nCurrent Timescale: %.1f", this.TimeScale + 0.001);
 
-		menu.AddItem("--", buffer.StringValue, (this.TimeScale == 0.0 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT));
+		menu.AddItem("--", buffer.StringValue, ITEMDRAW_DEFAULT);
 
 
-		menu.AddItem("++", "++Timescale", (this.TimeScale == 1.0 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT));
+		menu.AddItem("++", "++Timescale",   ITEMDRAW_DEFAULT);
 
 
 		menu.AddItem("jmp", (this.AutoJump ? "[X] Auto-jump from start zone?" : "[ ] Auto-jump from start zone?"));
@@ -235,16 +282,19 @@ methodmap Client < CBasePlayer
 
 	public void DoStrafeHack(float vel[3], float angles[3], float perfAngleDiff)
 	{
+		if(this.OnGround)
+		{
+			return;
+		}
+
 		// Check whether the player has tried to move their mouse more than the strafer
 		float flAngleGain = RadToDeg(ArcTangent(vel[1] / vel[0]));
 		float lastGain = _LastGain[this.Index];
+		this.PrintToConsole("speed: %.3f gain: %.2f last: %.2f", this.Speed, flAngleGain, lastGain);
 		// This check tells you when the mouse player movement is higher than the autostrafer one, and decide to put it or not
-		if (!((lastGain < 0.0 && flAngleGain < 0.0) || (lastGain > 0.0 && flAngleGain > 0.0))) 
+		//if (!((lastGain < 0.0 && flAngleGain < 0.0) || (lastGain > 0.0 && flAngleGain > 0.0))) 
 		{
-			if(this.StrafeHack && !this.OnGround)
-			{
-				angles[1] -= perfAngleDiff;
-			}
+			angles[1] -= perfAngleDiff;
 		}
 		
 		_LastGain[this.Index] = flAngleGain;
@@ -271,40 +321,52 @@ methodmap Client < CBasePlayer
 		}
 	}
 
-	public void OnTick(int& buttons, float vel[3], float angles[3], int mouse[2])
+	public Action OnTick(int& buttons, float vel[3], float angles[3], int mouse[2])
 	{
 		this.Buttons = buttons;
 		if(!this.IsAlive || !this.Enabled)
 		{
 			// DebugPrint("OnTick Not Enabled");
-			return;
-		}
-		
-		float vecvelocity[3];
-		GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
-		float perfAngleChange = RadToDeg(ArcTangent2(vecvelocity[1], vecvelocity[0]));
-		float perfAngleDiff = NormalizeAngle(angles[1] - perfAngleChange);
-
-
-		if(this.AutoStrafe)
-		{
-			this.DoAutoStrafe(vel, perfAngleDiff);
-		}
-		if(this.StrafeHack)
-		{
-			this.DoStrafeHack(vel, angles, perfAngleDiff);
-		}
-		if(this.FastWalk)
-		{
-			this.DoFastWalk(vel);
-		}
-		if(this.AutoJump)
-		{
-			this.DoAutoJump(buttons);
+			return Plugin_Continue;
 		}
 
-		// might investigate this again
-		// SetEntProp(this.Index, Prop_Data, "m_nSimulationTick", GetGameTickCount());
+		if(this.NextFrameTime <= 0.0)
+		{
+			float ang[3];
+			GetClientEyeAngles(this.Index, ang);
+			// PrintToConsole(this.Index, "angles[1]: %.3f, %.3f: eye angles", angles[1], ang[1]);
+			
+
+			float perfAngleChange = RadToDeg(ArcTangent2(30.0, this.Speed));
+			float perfAngleDiff = NormalizeAngle(angles[1] - perfAngleChange);
+
+			
+
+			if(this.AutoStrafe)
+			{
+				this.DoAutoStrafe(vel, perfAngleDiff);
+			}
+			if(this.StrafeHack)
+			{
+				this.DoStrafeHack(vel, angles, perfAngleDiff);
+			}
+			if(this.FastWalk)
+			{
+				this.DoFastWalk(vel);
+			}
+			if(this.AutoJump)
+			{
+				this.DoAutoJump(buttons);
+			}
+
+			this.NextFrameTime += (1.0 - this.TimeScale);
+		}
+		else
+		{
+			this.NextFrameTime -= this.TimeScale;
+		}
+
+		return Plugin_Continue;
 	}
 
 	public void OnPreThinkPost()
@@ -313,19 +375,31 @@ methodmap Client < CBasePlayer
 		{
 			sv_clockcorrection_msecs.IntValue = 0;
 			cl_clock_correction_force_server_tick.IntValue = -999;
-			host_timescale.FloatValue = this.TimeScale;
+			if(this.NextFrameTime <= 0.0)
+			{
+				this.Movetype = MOVETYPE_WALK;
+			}
+			else
+			{
+				this.Movetype = MOVETYPE_NONE;
+			}
 		}
 		else
 		{
-			host_timescale.RestoreDefault();
 			cl_clock_correction_force_server_tick.RestoreDefault();
 			sv_clockcorrection_msecs.RestoreDefault();
 		}
 	}
 
+	public void OnPostThink()
+	{
+		this.Movetype = MOVETYPE_WALK;
+	}
+
 	public void OnPutInServer()
 	{
 		SDKHook(this.Index, SDKHook_PreThinkPost, OnPreThinkPost);
+		SDKHook(this.Index, SDKHook_PostThinkPost, OnPostThink);
 		this.ResetVariables();
 	}
 
@@ -351,7 +425,7 @@ void ToggleTAS(Client client)
 		string convar;
 		convar.FromConVar(g_cDefaultCheats);
 		sv_cheats.ReplicateToClient(client.Index, convar.StringValue);
-		host_timescale.ReplicateToClient(client.Index, "1");
+		// host_timescale.ReplicateToClient(client.Index, "1");
 	}
 }
 
