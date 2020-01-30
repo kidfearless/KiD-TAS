@@ -290,7 +290,7 @@ methodmap Client < CBasePlayer
 		// Check whether the player has tried to move their mouse more than the strafer
 		float flAngleGain = RadToDeg(ArcTangent(vel[1] / vel[0]));
 		float lastGain = _LastGain[this.Index];
-		this.PrintToConsole("speed: %.3f gain: %.2f last: %.2f", this.Speed, flAngleGain, lastGain);
+		// this.PrintToConsole("speed: %.3f gain: %.2f last: %.2f", this.Speed, flAngleGain, lastGain);
 		// This check tells you when the mouse player movement is higher than the autostrafer one, and decide to put it or not
 		//if (!((lastGain < 0.0 && flAngleGain < 0.0) || (lastGain > 0.0 && flAngleGain > 0.0))) 
 		{
