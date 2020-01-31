@@ -6,6 +6,7 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <shavit>
+#include <dhooks>
 
 #include <string_test>
 #include <convar_class>
@@ -21,9 +22,6 @@ public Plugin myinfo =
 };
 
 ConVar sv_cheats;
-stock ConVar host_timescale;
-ConVar cl_clock_correction_force_server_tick;
-ConVar sv_clockcorrection_msecs;
 Convar g_cDefaultCheats;
 bool g_bLate;
 
@@ -31,13 +29,13 @@ bool g_bLate;
 
 public void OnPluginStart()
 {
+	// thanks xutaxkamay for pointing my head back to rngfix after i gave up on it.
+	LoadDHooks();
+
 	RegConsoleCmd("sm_tasmenu", Command_TasMenu, "opens tas menu");
 	RegConsoleCmd("sm_timescale", Command_TimeScale, "sets timescale");
 
 	sv_cheats = FindConVar("sv_cheats");
-	// host_timescale = FindConVar("host_timescale");
-	cl_clock_correction_force_server_tick = FindConVar("cl_clock_correction_force_server_tick");
-	sv_clockcorrection_msecs = FindConVar("sv_clockcorrection_msecs");
 
 	g_cDefaultCheats = new Convar("kid_tas_cheats_default", "2", "Default sv_cheats value, used for servers that set cheats on connect.");
 
@@ -54,6 +52,63 @@ public void OnPluginStart()
 			}
 		}
 	}
+}
+
+void LoadDHooks()
+{
+	// totally not ripped from rngfix :)
+	Handle gamedataConf = LoadGameConfigFile("KiD-TAS.games");
+
+	if(gamedataConf == null)
+	{
+		SetFailState("Failed to load KiD-TAS gamedata");
+	}
+
+	// CreateInterface
+	// Thanks SlidyBat and ici
+	StartPrepSDKCall(SDKCall_Static);
+	if(!PrepSDKCall_SetFromConf(gamedataConf, SDKConf_Signature, "CreateInterface"))
+	{
+		SetFailState("Failed to get CreateInterface");
+	}
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL);
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	Handle CreateInterface = EndPrepSDKCall();
+
+	if(CreateInterface == null)
+	{
+		SetFailState("Unable to prepare SDKCall for CreateInterface");
+	}
+
+	char interfaceName[64];
+
+	// ProcessMovement
+	if(!GameConfGetKeyValue(gamedataConf, "IGameMovement", interfaceName, sizeof(interfaceName)))
+	{
+		SetFailState("Failed to get IGameMovement interface name");
+	}
+
+	Address IGameMovement = SDKCall(CreateInterface, interfaceName, 0);
+	
+	if(!IGameMovement)
+	{
+		SetFailState("Failed to get IGameMovement pointer");
+	}
+
+	int offset = GameConfGetOffset(gamedataConf, "ProcessMovement");
+	if(offset == -1)
+	{
+		SetFailState("Failed to get ProcessMovement offset");
+	}
+
+	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPre);
+	DHookAddParam(processMovement, HookParamType_CBaseEntity);
+	DHookAddParam(processMovement, HookParamType_ObjectPtr);
+	DHookRaw(processMovement, false, IGameMovement);
+
+	delete CreateInterface;
+	delete gamedataConf;
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -106,6 +161,12 @@ public void OnPreThinkPost(int client)
 public void OnPostThink(int client)
 {
 	Client.Create(client).OnPostThink();
+}
+
+public MRESReturn DHook_ProcessMovementPre(Handle hParams)
+{
+	int client = DHookGetParam(hParams, 1);
+	return Client.Create(client).OnProcessMovement();
 }
 
 public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)

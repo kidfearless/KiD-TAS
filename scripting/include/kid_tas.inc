@@ -13,10 +13,9 @@ static bool _AutoStrafe[MAXPLAYERS+1] = {true, ...};
 static bool _StrafeHack[MAXPLAYERS+1] = {true, ...};
 static bool _FastWalk[MAXPLAYERS+1] = {true, ...};
 static bool _AutoJump[MAXPLAYERS+1] = {true, ...};
-static bool _ShouldJump[MAXPLAYERS+1];
+static bool _ForceJump[MAXPLAYERS+1];
 static bool _FastWalkDirection[MAXPLAYERS+1];
 static int _Buttons[MAXPLAYERS+1];
-stock static int _LastTickCount[MAXPLAYERS+1];
 static float _NextFrame[MAXPLAYERS+1];
 
 methodmap Client < CBasePlayer
@@ -82,6 +81,18 @@ methodmap Client < CBasePlayer
 				_Enabled[this.Index] = newVal;
 				ToggleTAS(this);
 			}
+		}
+	}
+
+	property bool ForceJump
+	{
+		public get()
+		{
+			return _ForceJump[this.Index];
+		}
+		public set(bool newVal)
+		{
+			_ForceJump[this.Index] = newVal;
 		}
 	}
 	
@@ -208,7 +219,7 @@ methodmap Client < CBasePlayer
 			}
 			
 			
-			// Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);			
+			Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);			
 		}
 	}
 
@@ -287,17 +298,11 @@ methodmap Client < CBasePlayer
 			return;
 		}
 
-		// Check whether the player has tried to move their mouse more than the strafer
-		float flAngleGain = RadToDeg(ArcTangent(vel[1] / vel[0]));
-		float lastGain = _LastGain[this.Index];
-		// this.PrintToConsole("speed: %.3f gain: %.2f last: %.2f", this.Speed, flAngleGain, lastGain);
-		// This check tells you when the mouse player movement is higher than the autostrafer one, and decide to put it or not
+		// this.PrintToConsole("perf %f", perfAngleDiff);
 		//if (!((lastGain < 0.0 && flAngleGain < 0.0) || (lastGain > 0.0 && flAngleGain > 0.0))) 
 		{
 			angles[1] -= perfAngleDiff;
 		}
-		
-		_LastGain[this.Index] = flAngleGain;
 	}
 
 	public void DoFastWalk(float vel[3])
@@ -314,86 +319,80 @@ methodmap Client < CBasePlayer
 
 	public void DoAutoJump(int& buttons)
 	{
-		if(_ShouldJump[this.Index] && this.OnGround)
+		if(this.ForceJump && this.OnGround)
 		{
 			buttons |= IN_JUMP;
-			_ShouldJump[this.Index] = false;
+			this.ForceJump = false;
 		}
 	}
 
-	public Action OnTick(int& buttons, float vel[3], float angles[3], int mouse[2])
+	public MRESReturn OnProcessMovement()
 	{
-		this.Buttons = buttons;
-		if(!this.IsAlive || !this.Enabled)
+		if(!this.Enabled)
 		{
-			// DebugPrint("OnTick Not Enabled");
-			return Plugin_Continue;
+			return MRES_Ignored;
 		}
-
 		if(this.NextFrameTime <= 0.0)
 		{
-			float ang[3];
-			GetClientEyeAngles(this.Index, ang);
-			// PrintToConsole(this.Index, "angles[1]: %.3f, %.3f: eye angles", angles[1], ang[1]);
-			
-
-			float perfAngleChange = RadToDeg(ArcTangent2(30.0, this.Speed));
-			float perfAngleDiff = NormalizeAngle(angles[1] - perfAngleChange);
-
-			
-
-			if(this.AutoStrafe)
-			{
-				this.DoAutoStrafe(vel, perfAngleDiff);
-			}
-			if(this.StrafeHack)
-			{
-				this.DoStrafeHack(vel, angles, perfAngleDiff);
-			}
-			if(this.FastWalk)
-			{
-				this.DoFastWalk(vel);
-			}
-			if(this.AutoJump)
-			{
-				this.DoAutoJump(buttons);
-			}
-
 			this.NextFrameTime += (1.0 - this.TimeScale);
+			return MRES_Ignored;
 		}
 		else
 		{
 			this.NextFrameTime -= this.TimeScale;
+			return MRES_Supercede;
 		}
-
-		return Plugin_Continue;
 	}
 
 	public void OnPreThinkPost()
 	{
 		if(this.Enabled)
 		{
-			sv_clockcorrection_msecs.IntValue = 0;
-			cl_clock_correction_force_server_tick.IntValue = -999;
-			if(this.NextFrameTime <= 0.0)
-			{
-				this.Movetype = MOVETYPE_WALK;
-			}
-			else
-			{
-				this.Movetype = MOVETYPE_NONE;
-			}
 		}
 		else
 		{
-			cl_clock_correction_force_server_tick.RestoreDefault();
-			sv_clockcorrection_msecs.RestoreDefault();
 		}
+	}
+
+	public Action OnTick(int& buttons, float vel[3], float angles[3], int mouse[2])
+	{
+		this.Buttons = buttons;
+
+		if(!this.IsAlive || !this.Enabled)
+		{
+			return Plugin_Continue;
+		}
+
+		float flVelocity[3];
+		this.GetVelocity(flVelocity);
+	
+		float perfAngleChange = RadToDeg(ArcTangent2(flVelocity[1], flVelocity[0]));
+		float perfAngleDiff = NormalizeAngle(angles[1] - perfAngleChange);
+
+		
+
+		if(this.AutoStrafe)
+		{
+			this.DoAutoStrafe(vel, perfAngleDiff);
+		}
+		if(this.StrafeHack)
+		{
+			this.DoStrafeHack(vel, angles, perfAngleDiff);
+		}
+		if(this.FastWalk)
+		{
+			this.DoFastWalk(vel);
+		}
+		if(this.AutoJump)
+		{
+			this.DoAutoJump(buttons);
+		}
+		
+		return Plugin_Continue;
 	}
 
 	public void OnPostThink()
 	{
-		this.Movetype = MOVETYPE_WALK;
 	}
 
 	public void OnPutInServer()
@@ -405,7 +404,7 @@ methodmap Client < CBasePlayer
 
 	public void OnLeaveStartZone()
 	{
-		_ShouldJump[this.Index] = true;
+		this.ForceJump = true;
 	}
 }
 
@@ -413,11 +412,8 @@ void ToggleTAS(Client client)
 {
 	if(client.Enabled)
 	{
+		// Keeping this as it's TAS, should honestly have access to everything available
 		sv_cheats.ReplicateToClient(client.Index, "2");
-		PrintToChat(client.Index, "For a better experience change the following convars:");
-		PrintToChat(client.Index, "cl_clock_correction 0");
-		PrintToChat(client.Index, "cl_clock_correction_force_server_tick 0");
-		PrintToConsole(client.Index, "cl_clock_correction_force_server_tick 0;cl_clock_correction 0;");
 		client.OpenMenu();
 	}
 	else
@@ -425,7 +421,6 @@ void ToggleTAS(Client client)
 		string convar;
 		convar.FromConVar(g_cDefaultCheats);
 		sv_cheats.ReplicateToClient(client.Index, convar.StringValue);
-		// host_timescale.ReplicateToClient(client.Index, "1");
 	}
 }
 
