@@ -1,4 +1,5 @@
 # Ignore everything:
+*.*
 
 !gamedata/KiD-TAS.games.txt
 !scripting/include/thelpers/**
