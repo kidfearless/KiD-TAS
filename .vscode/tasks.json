@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+	"tasks":
+	[
+		{
+			"label": "Compile plugin",
+			"type": "shell",
+			"presentation": {
+				"panel": "new"
+			},
+			"windows": {
+				"command": "${workspaceFolder}/scripting/spcomp.exe"
+			},
+			"args": [
+				"${workspaceFolder}/scripting/kid-tas.sp",
+				"-v2",
+				"-i${workspaceFolder}/scripting/include/",
+				"-o${workspaceFolder}/compiled/kid-tas.smx"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}
