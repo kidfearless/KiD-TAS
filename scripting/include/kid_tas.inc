@@ -5,6 +5,18 @@
 
 #define PERFSPEEDHACK 227.6
 
+/* 
+
+TODO: TAS will be considered done when all of these things have been completed
+1.	Calculated max prestrafe gains
+2.	Rewinds
+3.	Boosters verified to be working
+4.	Menu contains it's own cp menu
+5.	Run saving (with or without checkpoints included)
+6.	Replays in normal timescale
+7.	Replays not shaky
+*/
+
 // private members
 static bool _Enabled[MAXPLAYERS+1];
 static float _LastGain[MAXPLAYERS+1];
@@ -298,11 +310,16 @@ methodmap Client < CBasePlayer
 			return;
 		}
 
+		float lastGain = _LastGain[this.Index];
+		float flAngleGain = RadToDeg(ArcTangent(vel[1] / vel[0]));
+
 		// this.PrintToConsole("perf %f", perfAngleDiff);
-		//if (!((lastGain < 0.0 && flAngleGain < 0.0) || (lastGain > 0.0 && flAngleGain > 0.0))) 
+		if (!((lastGain < 0.0 && flAngleGain < 0.0) || (lastGain > 0.0 && flAngleGain > 0.0))) 
 		{
 			angles[1] -= perfAngleDiff;
 		}
+
+		_LastGain[this.Index] = flAngleGain;
 	}
 
 	public void DoFastWalk(float vel[3])
