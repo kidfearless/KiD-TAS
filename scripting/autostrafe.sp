@@ -13,6 +13,7 @@
 float g_flAirSpeedCap = 30.0;
 float g_flOldYawAngle[MAXPLAYERS + 1];
 ConVar g_ConVar_sv_airaccelerate;
+// css linux offset as of february 8th, 2020
 int g_iSurfaceFrictionOffset = 3852;
 float g_fMaxMove = 400.0;
 EngineVersion g_Game;
@@ -45,11 +46,12 @@ public void OnPluginStart()
 	
 	if(g_Game == Engine_CSGO)
 	{
-		g_iSurfaceFrictionOffset = 4660;
 		g_fMaxMove = 450.0;
 		ConVar sv_air_max_wishspeed = FindConVar("sv_air_max_wishspeed");
 		sv_air_max_wishspeed.AddChangeHook(OnWishSpeedChanged);
 		g_flAirSpeedCap = sv_air_max_wishspeed.FloatValue;
+		// csgo linux offset as of february 8th, 2020
+		g_iSurfaceFrictionOffset = 0x124C;
 	}
 
 	g_ConVar_sv_airaccelerate = FindConVar("sv_airaccelerate");
@@ -486,15 +488,16 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		return Plugin_Continue;
 	}
 
+	bool bOnGround = !(buttons & IN_JUMP) && (GetEntityFlags(client) & FL_ONGROUND);
+
 	if (IsPlayerAlive(client) 
-		&& !(GetEntityFlags(client) & FL_ONGROUND) 
+		&& !bOnGround
 		&& !(GetEntityMoveType(client) & MOVETYPE_LADDER) 
 		&& (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
 	{
 		float flFowardMove, flSideMove;
 		float flMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
 		float flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
-		// float flSurfaceFriction = 1.0;
 		float flFrametime = GetTickInterval();
 		
 		float flVelocity[3], flVelocity2D[2];
@@ -546,6 +549,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	
 	return Plugin_Continue;
 }
+
+// natives
 
 public any Native_SetAutostrafe(Handle plugin, int numParams)
 {
