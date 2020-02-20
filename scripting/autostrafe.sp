@@ -498,6 +498,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		float flFowardMove, flSideMove;
 		float flMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
 		float flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
+		// float flSurfaceFriction = 1.0;
 		float flFrametime = GetTickInterval();
 		
 		float flVelocity[3], flVelocity2D[2];
