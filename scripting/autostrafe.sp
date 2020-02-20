@@ -63,6 +63,11 @@ public void OnWishSpeedChanged(ConVar convar, const char[] oldValue, const char[
 	g_flAirSpeedCap = StringToFloat(newValue);
 }
 
+public void OnClientConnected(int client)
+{
+	g_bEnabled[client] = false;
+}
+
 float AngleNormalize(float flAngle)
 {
 	if (flAngle > 180.0)
