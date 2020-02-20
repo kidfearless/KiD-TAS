@@ -11,6 +11,7 @@
 !scripting/include/shavit.inc
 !scripting/kid-tas.sp
 !scripting/autostrafe.sp
+!scripting/xutax-autostrafe.sp
 !compiled
 !compile.bat
 !.gitignore
