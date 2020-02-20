@@ -4,31 +4,79 @@
 #define _kid_tas_included
 
 #define PERFSPEEDHACK 227.6
+#include <sourcemod>
+#include <sdkhooks>
+#include <shavit>
+#include <dhooks>
 
-/* 
+#include <string_test>
+#include <convar_class>
+#include <thelpers/thelpers>
+#include <xutaxstrafe>
+/*
 
 TODO: TAS will be considered done when all of these things have been completed
 1.	Calculated max prestrafe gains
 2.	Rewinds
 3.	Boosters verified to be working
+3a. 	Booster require gravity_booster_fix
 4.	Menu contains it's own cp menu
 5.	Run saving (with or without checkpoints included)
-6.	Replays in normal timescale
-7.	Replays not shaky
 */
 
 // private members
 static bool _Enabled[MAXPLAYERS+1];
 static float _LastGain[MAXPLAYERS+1];
 static float _TimeScale[MAXPLAYERS+1] = {1.0, ...};
-static bool _AutoStrafe[MAXPLAYERS+1] = {true, ...};
 static bool _StrafeHack[MAXPLAYERS+1] = {true, ...};
 static bool _FastWalk[MAXPLAYERS+1] = {true, ...};
 static bool _AutoJump[MAXPLAYERS+1] = {true, ...};
 static bool _ForceJump[MAXPLAYERS+1];
 static bool _FastWalkDirection[MAXPLAYERS+1];
 static int _Buttons[MAXPLAYERS+1];
+static int _Method[MAXPLAYERS+1];
 static float _NextFrame[MAXPLAYERS+1];
+static bool _UseThisFrame[MAXPLAYERS+1];
+
+methodmap MethodMap
+{
+	property int Client
+	{
+		public get()
+		{
+			return 0;
+		}
+	}
+	property int None
+	{
+		public get()
+		{
+			return -1;
+		}
+	}
+	property int Server
+	{
+		public get()
+		{
+			return 1;
+		}
+	}
+	property int ServerClient
+	{
+		public get()
+		{
+			return 2;
+		}
+	}
+	property int Size
+	{
+		public get()
+		{
+			return 3;
+		}
+	}
+}
+MethodMap Method;
 
 methodmap Client < CBasePlayer
 {
@@ -86,11 +134,11 @@ methodmap Client < CBasePlayer
 		{
 			return _Enabled[this.Index];
 		}
-		public set(bool newVal)
+		public set(bool value)
 		{
-			if(_Enabled[this.Index] != newVal)
+			if(_Enabled[this.Index] != value)
 			{
-				_Enabled[this.Index] = newVal;
+				_Enabled[this.Index] = value;
 				ToggleTAS(this);
 			}
 		}
@@ -102,21 +150,21 @@ methodmap Client < CBasePlayer
 		{
 			return _ForceJump[this.Index];
 		}
-		public set(bool newVal)
+		public set(bool value)
 		{
-			_ForceJump[this.Index] = newVal;
+			_ForceJump[this.Index] = value;
 		}
 	}
-	
+
 	property int Buttons
 	{
 		public get()
 		{
 			return _Buttons[this.Index];
 		}
-		public set(int newVal)
+		public set(int value)
 		{
-			_Buttons[this.Index] = newVal;
+			_Buttons[this.Index] = value;
 		}
 	}
 
@@ -126,9 +174,9 @@ methodmap Client < CBasePlayer
 		{
 			return _NextFrame[this.Index];
 		}
-		public set(float newVal)
+		public set(float value)
 		{
-			_NextFrame[this.Index] = newVal;
+			_NextFrame[this.Index] = value;
 		}
 	}
 
@@ -162,9 +210,9 @@ methodmap Client < CBasePlayer
 		{
 			return _AutoJump[this.Index];
 		}
-		public set(bool newVal)
+		public set(bool value)
 		{
-			_AutoJump[this.Index] = newVal;
+			_AutoJump[this.Index] = value;
 		}
 	}
 
@@ -174,21 +222,22 @@ methodmap Client < CBasePlayer
 		{
 			return _StrafeHack[this.Index];
 		}
-		public set(bool newVal)
+		public set(bool value)
 		{
-			_StrafeHack[this.Index] = newVal;
+			_StrafeHack[this.Index] = value;
+			SetXutaxStrafe(this.Index, value);
 		}
 	}
 
-	property bool AutoStrafe
+	property bool ProcessFrame
 	{
 		public get()
 		{
-			return _AutoStrafe[this.Index];
+			return _UseThisFrame[this.Index];
 		}
-		public set(bool newVal)
+		public set(bool value)
 		{
-			_AutoStrafe[this.Index] = newVal;
+			_UseThisFrame[this.Index] = value;
 		}
 	}
 
@@ -198,9 +247,53 @@ methodmap Client < CBasePlayer
 		{
 			return _FastWalk[this.Index];
 		}
-		public set(bool newVal)
+		public set(bool value)
 		{
-			_FastWalk[this.Index] = newVal;
+			_FastWalk[this.Index] = value;
+		}
+	}
+
+	property float LaggedMovementValue
+	{
+		public get()
+		{
+			return GetEntPropFloat(this.Index, Prop_Data, "m_flLaggedMovementValue");
+		}
+		public set(float value)
+		{
+			SetEntPropFloat(this.Index, Prop_Data, "m_flLaggedMovementValue", value);
+		}
+	}
+
+	property int Method
+	{
+		public get()
+		{
+			return _Method[this.Index];
+		}
+		public set(int value)
+		{
+			value %= Method.Size;
+
+			if(value != _Method[this.Index])
+			{
+				if(value == Method.Server)
+				{
+					Server.HostTimescale.ReplicateToClient(this.Index, "1");
+				}
+				else
+				{
+					Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
+					this.LaggedMovementValue = 1.0;
+					if(value == Method.Client || value == Method.ServerClient)
+					{
+						string sValue;
+						sValue.FromFloat(_TimeScale[this.Index]);
+						Server.HostTimescale.ReplicateToClient(this.Index, sValue.StringValue);
+					}
+				}
+			}
+			_Method[this.Index] = value;
 		}
 	}
 
@@ -210,28 +303,35 @@ methodmap Client < CBasePlayer
 		{
 			return _TimeScale[this.Index];
 		}
-		public set(float newVal)
+		public set(float value)
 		{
 			if(!this.Enabled)
 			{
 				return;
 			}
-			
-			if(newVal < 0.0)
+
+			if(value < 0.0)
 			{
 				_TimeScale[this.Index] = 0.1;
 			}
-			else if(newVal > 1.0)
+			else if(value > 1.0)
 			{
 				_TimeScale[this.Index] = 1.0;
 			}
 			else
 			{
-				_TimeScale[this.Index] = newVal;
+				_TimeScale[this.Index] = value;
 			}
-			
-			
-			Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);			
+
+
+			Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
+			this.LaggedMovementValue = 1.0;
+			if(this.Method == Method.Client || this.Method == Method.ServerClient)
+			{
+				string sValue;
+				sValue.FromFloat(_TimeScale[this.Index]);
+				Server.HostTimescale.ReplicateToClient(this.Index, sValue.StringValue);
+			}
 		}
 	}
 
@@ -241,7 +341,7 @@ methodmap Client < CBasePlayer
 		VFormat(buffer.StringValue, buffer.Size(), format, 3);
 		PrintToConsole(this.Index, buffer.StringValue);
 	}
-	
+
 	public void OpenMenu()
 	{
 		if(!this.Enabled)
@@ -269,10 +369,21 @@ methodmap Client < CBasePlayer
 
 		menu.AddItem("jmp", (this.AutoJump ? "[X] Auto-jump from start zone?" : "[ ] Auto-jump from start zone?"));
 
-
-		menu.AddItem("as", (this.AutoStrafe ? "[X] Auto-Strafe" : "[ ] Auto-Strafe"));
-
 		menu.AddItem("sh", (this.StrafeHack ? "[X] Strafe hack" : "[ ] Strafe Hack"));
+		
+		if(this.Method == Method.Client)
+		{
+			menu.AddItem("met", "Method: Client");
+		}
+		else if(this.Method == Method.Server)
+		{
+			menu.AddItem("met", "Method: Server");
+		}
+		else if(this.Method == Method.ServerClient)
+		{
+			menu.AddItem("met", "Method: Server + Client");
+		}
+		
 
 		menu.Pagination = MENU_NO_PAGINATION;
 		menu.ExitButton = true;
@@ -284,42 +395,9 @@ methodmap Client < CBasePlayer
 		this.TimeScale = 1.0;
 		_LastGain[this.Index] = 0.0;
 		this.Enabled = false;
-		this.StrafeHack = true;
-		this.AutoStrafe = true;
+		_StrafeHack[this.Index] = true;
 		this.FastWalk = true;
-	}
-
-	public void DoAutoStrafe(float vel[3], float perfAngleDiff)
-	{
-		// if autostrafe and either not on the ground or on the ground and holding jump
-		if(this.AutoStrafe && !this.OnGround)
-		{
-			vel[1] = 450.0;
-	
-			if (perfAngleDiff > 0.0)
-			{
-				vel[1] = -450.0;
-			}	
-		}
-	}
-
-	public void DoStrafeHack(float vel[3], float angles[3], float perfAngleDiff)
-	{
-		if(this.OnGround)
-		{
-			return;
-		}
-
-		float lastGain = _LastGain[this.Index];
-		float flAngleGain = RadToDeg(ArcTangent(vel[1] / vel[0]));
-
-		// this.PrintToConsole("perf %f", perfAngleDiff);
-		if (!((lastGain < 0.0 && flAngleGain < 0.0) || (lastGain > 0.0 && flAngleGain > 0.0))) 
-		{
-			angles[1] -= perfAngleDiff;
-		}
-
-		_LastGain[this.Index] = flAngleGain;
+		this.Method = Method.ServerClient;
 	}
 
 	public void DoFastWalk(float vel[3])
@@ -345,30 +423,38 @@ methodmap Client < CBasePlayer
 
 	public MRESReturn OnProcessMovement()
 	{
-		if(!this.Enabled)
+		if(!this.Enabled || this.Method == Method.Client)
 		{
 			return MRES_Ignored;
 		}
-		if(this.NextFrameTime <= 0.0)
+
+		this.ProcessFrame = (this.NextFrameTime <= 0.0);
+
+		if(this.ProcessFrame)
 		{
 			this.NextFrameTime += (1.0 - this.TimeScale);
+			this.Movetype = MOVETYPE_WALK;
 			return MRES_Ignored;
 		}
 		else
 		{
 			this.NextFrameTime -= this.TimeScale;
-			return MRES_Supercede;
+			this.Movetype = MOVETYPE_NONE;
+			return MRES_Ignored;
+		}
+	}
+
+	public MRESReturn OnProcessMovementPost()
+	{
+		if(this.Enabled && this.Method != Method.Client)
+		{
+			this.Movetype = MOVETYPE_WALK;
 		}
 	}
 
 	public void OnPreThinkPost()
 	{
-		if(this.Enabled)
-		{
-		}
-		else
-		{
-		}
+
 	}
 
 	public Action OnTick(int& buttons, float vel[3], float angles[3], int mouse[2])
@@ -379,37 +465,27 @@ methodmap Client < CBasePlayer
 		{
 			return Plugin_Continue;
 		}
-
-		float flVelocity[3];
-		this.GetVelocity(flVelocity);
-	
-		float perfAngleChange = RadToDeg(ArcTangent2(flVelocity[1], flVelocity[0]));
-		float perfAngleDiff = NormalizeAngle(angles[1] - perfAngleChange);
-
-		
-
-		if(this.AutoStrafe)
+		if(!this.ProcessFrame)
 		{
-			this.DoAutoStrafe(vel, perfAngleDiff);
+			return Plugin_Continue;
 		}
-		if(this.StrafeHack)
-		{
-			this.DoStrafeHack(vel, angles, perfAngleDiff);
-		}
-		if(this.FastWalk)
-		{
-			this.DoFastWalk(vel);
-		}
+
 		if(this.AutoJump)
 		{
 			this.DoAutoJump(buttons);
 		}
-		
+
 		return Plugin_Continue;
+	}
+
+	public void OnTickPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
+	{
+
 	}
 
 	public void OnPostThink()
 	{
+		// this.ProcessFrame = true;
 	}
 
 	public void OnPutInServer()
@@ -419,9 +495,17 @@ methodmap Client < CBasePlayer
 		this.ResetVariables();
 	}
 
+	public void OnDisconnect()
+	{
+		SetXutaxStrafe(this.Index, false);
+	}
+
 	public void OnLeaveStartZone()
 	{
-		this.ForceJump = true;
+		if(this.OnGround)
+		{
+			this.ForceJump = true;
+		}
 	}
 }
 
@@ -430,25 +514,43 @@ void ToggleTAS(Client client)
 	if(client.Enabled)
 	{
 		// Keeping this as it's TAS, should honestly have access to everything available
-		sv_cheats.ReplicateToClient(client.Index, "2");
+		Server.Cheats.ReplicateToClient(client.Index, "2");
 		client.OpenMenu();
 	}
 	else
 	{
-		string convar;
-		convar.FromConVar(g_cDefaultCheats);
-		sv_cheats.ReplicateToClient(client.Index, convar.StringValue);
+		string_8 convar;
+		convar.FromInt(Server.GetDefaultCheats());
+		Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
+		Server.HostTimescale.ReplicateToClient(client.Index, "1");
 	}
 }
 
 #define DEBUG 0
 #if DEBUG == 1
-
 void DebugPrint(const char[] format, any args ...)
 {
 	string buffer;
 	VFormat(buffer.StringValue, buffer.Size(), format, 2);
 	PrintToChatAll(buffer.StringValue);
 }
+#endif
 
-#endif 
+native bool TAS_ShouldProcessFrame(int client);
+
+public SharedPlugin __pl_kid_tas =
+{
+	name = "kid-tas",
+#if defined REQUIRE_PLUGIN
+	required = 0
+#else
+	required = 0
+#endif
+};
+
+#if !defined REQUIRE_PLUGIN
+public void __pl_kid_tas_SetNTVOptional()
+{
+	MarkNativeAsOptional("TAS_ShouldProcessFrame");
+}
+#endif

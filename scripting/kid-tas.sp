@@ -11,6 +11,7 @@
 #include <string_test>
 #include <convar_class>
 #include <thelpers/thelpers>
+#include <xutaxstrafe>
 
 public Plugin myinfo = 
 {
@@ -22,10 +23,77 @@ public Plugin myinfo =
 };
 
 ConVar sv_cheats;
+ConVar host_timescale;
 Convar g_cDefaultCheats;
 bool g_bLate;
 
+methodmap ServerMap
+{
+	property ConVar Cheats
+	{
+		public get()
+		{
+			return sv_cheats;
+		}
+		public set(ConVar value)
+		{
+			sv_cheats = value;
+		}
+	}
+	property ConVar HostTimescale
+	{
+		public get()
+		{
+			return host_timescale;
+		}
+		public set(ConVar value)
+		{
+			host_timescale = value;
+		}
+	}
+	property bool IsLate
+	{
+		public get()
+		{
+			return g_bLate;
+		}
+		public set(bool value)
+		{
+			g_bLate = value;
+		}
+	}
+	property bool IsCSGO
+	{
+		public get()
+		{
+			return GetEngineVersion() == Engine_CSGO;
+		}
+	}
+	property bool IsCSS
+	{
+		public get()
+		{
+			return GetEngineVersion() == Engine_CSS;
+		}
+	}
+	public int GetDefaultCheats()
+	{
+		return g_cDefaultCheats.IntValue;
+	}
+}
+
+ServerMap Server;
+
 #include <kid_tas>
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+
+	CreateNative("TAS_ShouldProcessFrame", Native_ShouldProcess);
+
+	Server.IsLate = late;
+	return APLRes_Success;
+}
 
 public void OnPluginStart()
 {
@@ -35,7 +103,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tasmenu", Command_TasMenu, "opens tas menu");
 	RegConsoleCmd("sm_timescale", Command_TimeScale, "sets timescale");
 
-	sv_cheats = FindConVar("sv_cheats");
+	Server.Cheats = FindConVar("sv_cheats");
+	Server.HostTimescale = FindConVar("host_timescale");
 
 	g_cDefaultCheats = new Convar("kid_tas_cheats_default", "2", "Default sv_cheats value, used for servers that set cheats on connect.");
 
@@ -50,6 +119,21 @@ public void OnPluginStart()
 			{
 				client.OnPutInServer();
 			}
+		}
+	}
+}
+
+public void OnPluginEnd()
+{
+	for(int i = 1; i <= MaxClients; ++i)
+	{
+		Client client = new Client(i);
+		if(client.Enabled)
+		{
+			string_8 convar;
+			convar.FromInt(Server.GetDefaultCheats());
+			Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
+			Server.HostTimescale.ReplicateToClient(client.Index, "1");
 		}
 	}
 }
@@ -107,19 +191,25 @@ void LoadDHooks()
 	DHookAddParam(processMovement, HookParamType_ObjectPtr);
 	DHookRaw(processMovement, false, IGameMovement);
 
+	Handle processMovementPost = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPost);
+	DHookAddParam(processMovementPost, HookParamType_CBaseEntity);
+	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
+	DHookRaw(processMovementPost, true, IGameMovement);
+
+	
+
 	delete CreateInterface;
 	delete gamedataConf;
-}
-
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
-{
-	g_bLate = late;
-	return APLRes_Success;
 }
 
 public void OnClientPutInServer(int client)
 {
 	Client.Create(client).OnPutInServer();
+}
+
+public void OnClientDisconnect(int client)
+{
+	Client.Create(client).OnDisconnect();
 }
 
 public Action Command_TasMenu(int client, int args)
@@ -148,9 +238,14 @@ public Action Command_TimeScale(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings, int mouse[2])
 {
 	return Client.Create(client).OnTick(buttons, vel, angles, mouse);
+}
+
+public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
+{
+	Client.Create(client).OnTickPost(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse);
 }
 
 public void OnPreThinkPost(int client)
@@ -167,6 +262,12 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
 	return Client.Create(client).OnProcessMovement();
+}
+
+public MRESReturn DHook_ProcessMovementPost(Handle hParams)
+{
+	int client = DHookGetParam(hParams, 1);
+	return Client.Create(client).OnProcessMovementPost();
 }
 
 public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
@@ -202,13 +303,17 @@ public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 				{
 					client.AutoJump = !client.AutoJump;
 				}
-				else if (info.Equals("as"))
-				{
-					client.AutoStrafe = !client.AutoStrafe;
-				}
 				else if(info.Equals("sh"))
 				{
 					client.StrafeHack = !client.StrafeHack;
+				}
+				else if(info.Equals("met"))
+				{
+					++client.Method;
+					if(Server.IsCSGO && client.Method == Method.Client)
+					{
+						++client.Method;
+					}
 				}
 
 
@@ -257,4 +362,9 @@ public float NormalizeAngle(float angle)
 	}
 	
 	return temp;
+}
+
+public any Native_ShouldProcess(Handle time, int numParams)
+{
+	return Client.Create(GetNativeCell(1)).ProcessFrame;
 }
