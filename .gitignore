@@ -11,5 +11,7 @@
 !scripting/include/shavit.inc
 !scripting/kid-tas.sp
 !scripting/autostrafe.sp
+!compiled
+!compile.bat
 !.gitignore
 # Except for whitelisted files:
