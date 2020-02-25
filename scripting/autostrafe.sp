@@ -18,13 +18,15 @@ int g_iSurfaceFrictionOffset = 3852;
 float g_fMaxMove = 400.0;
 EngineVersion g_Game;
 bool g_bEnabled[MAXPLAYERS + 1];
+int g_iType[MAXPLAYERS + 1];
+
 
 public Plugin myinfo = 
 {
 	name = "Perfect autostrafe",
 	author = "xutaxkamay",
 	description = "",
-	version = "1.0",
+	version = "1.1",
 	url = "https://steamcommunity.com/id/xutaxkamay/"
 };
 
@@ -32,6 +34,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	CreateNative("SetXutaxStrafe", Native_SetAutostrafe);
 	CreateNative("GetXutaxStrafe", Native_GetAutostrafe);
+	CreateNative("SetXutaxType", Native_SetType);
+	CreateNative("GetXutaxType", Native_GetType);
 	return APLRes_Success;
 }
 
@@ -66,6 +70,7 @@ public void OnWishSpeedChanged(ConVar convar, const char[] oldValue, const char[
 public void OnClientConnected(int client)
 {
 	g_bEnabled[client] = false;
+	g_iType[client] = Type_SurfOverride;
 }
 
 float AngleNormalize(float flAngle)
@@ -99,114 +104,6 @@ float Vec2DToYaw(float vec[2])
 	
 	return flYaw;
 }
-
-/* 
-void CGameMovement::AirAccelerate( Vector& wishdir, float wishspeed, float accel )
-{
-	int i;
-	float addspeed, accelspeed, currentspeed;
-	float wishspd;
-
-	wishspd = wishspeed;
-	
-	if (player->pl.deadflag)
-		return;
-	
-	if (player->m_flWaterJumpTime)
-		return;
-
-	if (wishspd > 30)
-		wishspd = 30;
-
-	// I guess you remember how to do a dot product but this is how it works:
-	// mv->m_vecVelocity.x * wishdir.x + mv->m_vecVelocity.y * wishdir.y
-	// we also know that if you remember from school
-    // velocityLength2D * wishdirLength2D * cos(theta) gives also the dot product.
-	// wishdir is normalized, so we know that its length is 1
-	// velocityLength2D * cos(theta)
-	// You may heard why it needs the perpendicular of velocity
-	// And thats where it says it all.
-	// if cos(theta) == 0 then the dot product is 0
-	// wich means that theta = 90.
-	// But do we really want to be always perpendicular to the velocity?
-	
-	currentspeed = mv->m_vecVelocity.Dot(wishdir);
-	
-	// wishspd is capped to 30, but as you can see under
-	addspeed = wishspd - currentspeed;
-	
-	if (addspeed <= 0)
-		return;
-	
-	// accelspeed also regulates it, so it is not always 30 but accelspeed.
-	accelspeed = accel * wishspeed * gpGlobals->frametime * player->m_surfaceFriction;
-
-	// so if accelspeed is 15 for example
-	if (accelspeed > addspeed)
-		accelspeed = addspeed;
-
-	for (i=0 ; i<3 ; i++)
-	{
-		// It will apply 15 * wishdir here.
-		// Wich means if we go always on the perpendicular of velocity
-		// We will deaccelerate when accelspeed < 30
-		// Because the used dot product won't correspond to the gain accelspeed.
-		mv->m_vecVelocity[i] += accelspeed * wishdir[i];
-		mv->m_outWishVel[i] += accelspeed * wishdir[i];
-	}
-}
-*/
-
-/*
-void CGameMovement::AirMove( void )
-{
-	int			i;
-	Vector		wishvel;
-	float		fmove, smove;
-	Vector		wishdir;
-	float		wishspeed;
-	Vector forward, right, up;
-
-	AngleVectors (mv->m_vecViewAngles, &forward, &right, &up);  // Determine movement angles
-	
-	// Copy movement amounts
-	fmove = mv->m_flForwardMove; // cmd->forwardmove
-	smove = mv->m_flSideMove; // cmd->sidemove
-	
-	// Zero out z components of movement vectors to remove upwards velocity
-	forward[2] = 0;
-	right[2]   = 0;
-	
-	VectorNormalize(forward);  
-	VectorNormalize(right); 
-
-	for (i = 0; i < 2; i++) //;
-		wishvel[i] = forward[i] * fmove + right[i] * smove; // As you can see here, the movement depends in the forwardmove and sidemove values;
-	
-	wishvel[2] = 0; // Z doesn't matter here
-
-	VectorCopy (wishvel, wishdir);
-	wishspeed = VectorNormalize(wishdir); // Basically it normalizes the vector in order to get the wishspeed desired from forwardmove/sidemove values
-	// So if mv->m_flMaxSpeed is = 260 it is not necessary to set the values for sidemove or forwardmove to 450, but only 260 (since it's the maximum you can get).
-	
-	if ( wishspeed != 0 && (wishspeed > mv->m_flMaxSpeed))
-	{
-		VectorScale (wishvel, mv->m_flMaxSpeed/wishspeed, wishvel);
-		wishspeed = mv->m_flMaxSpeed;
-	}
-	
-	// 
-	AirAccelerate( wishdir, wishspeed, sv_airaccelerate.GetFloat() );
-
-	// Add in any base velocity to the current velocity.
-	VectorAdd(mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
-
-	TryPlayerMove();
-
-	// Now pull the base velocity back out.   Base velocity is set if you are on a moving object, like a conveyor (or maybe another monster?)
-	VectorSubtract( mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
-}
-*/
 
 /* 
  * So our problem here is to find a wishdir that no matter the angles we choose, it should go to the direction we want. 
@@ -500,6 +397,23 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		&& !(GetEntityMoveType(client) & MOVETYPE_LADDER) 
 		&& (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
 	{
+		if(!!(buttons & (IN_FORWARD | IN_BACK)))
+		{
+			return Plugin_Continue;
+		}
+	
+		if(!!(buttons & (IN_MOVERIGHT | IN_MOVELEFT)))
+		{
+			if(g_iType[client] == Type_Override)
+			{
+				return Plugin_Continue;
+			}
+			else if(g_iType[client] == Type_SurfOverride && IsSurfing(client))
+			{
+				return Plugin_Continue;
+			}
+		}
+
 		float flFowardMove, flSideMove;
 		float flMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
 		float flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
@@ -571,3 +485,169 @@ public any Native_GetAutostrafe(Handle plugin, int numParams)
 	int client = GetNativeCell(1);
 	return g_bEnabled[client];
 }
+
+public any Native_SetType(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int value = GetNativeCell(2);
+	g_iType[client] = value;
+	return 0;
+}
+
+public any Native_GetType(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	return g_iType[client];
+}
+
+// stocks
+// taken from shavit's oryx
+stock bool IsSurfing(int client)
+{
+	float fPosition[3];
+	GetClientAbsOrigin(client, fPosition);
+
+	float fEnd[3];
+	fEnd = fPosition;
+	fEnd[2] -= 64.0;
+
+	float fMins[3];
+	GetEntPropVector(client, Prop_Send, "m_vecMins", fMins);
+
+	float fMaxs[3];
+	GetEntPropVector(client, Prop_Send, "m_vecMaxs", fMaxs);
+
+	Handle hTR = TR_TraceHullFilterEx(fPosition, fEnd, fMins, fMaxs, MASK_PLAYERSOLID, TRFilter_NoPlayers, client);
+
+	if(TR_DidHit(hTR))
+	{
+		float fNormal[3];
+		TR_GetPlaneNormal(hTR, fNormal);
+
+		delete hTR;
+
+		// If the plane normal's Z axis is 0.7 or below (alternatively, -0.7 when upside-down) then it's a surf ramp.
+		// https://mxr.alliedmods.net/hl2sdk-css/source/game/server/physics_main.cpp#1059
+
+		return (-0.7 <= fNormal[2] <= 0.7);
+	}
+
+	delete hTR;
+
+	return false;
+}
+
+public bool TRFilter_NoPlayers(int entity, int mask, any data)
+{
+	return (entity != view_as<int>(data) || (entity < 1 || entity > MaxClients));
+}
+
+
+// reference code
+/* 
+void CGameMovement::AirAccelerate( Vector& wishdir, float wishspeed, float accel )
+{
+	int i;
+	float addspeed, accelspeed, currentspeed;
+	float wishspd;
+
+	wishspd = wishspeed;
+	
+	if (player->pl.deadflag)
+		return;
+	
+	if (player->m_flWaterJumpTime)
+		return;
+
+	if (wishspd > 30)
+		wishspd = 30;
+
+	// I guess you remember how to do a dot product but this is how it works:
+	// mv->m_vecVelocity.x * wishdir.x + mv->m_vecVelocity.y * wishdir.y
+	// we also know that if you remember from school
+    // velocityLength2D * wishdirLength2D * cos(theta) gives also the dot product.
+	// wishdir is normalized, so we know that its length is 1
+	// velocityLength2D * cos(theta)
+	// You may heard why it needs the perpendicular of velocity
+	// And thats where it says it all.
+	// if cos(theta) == 0 then the dot product is 0
+	// wich means that theta = 90.
+	// But do we really want to be always perpendicular to the velocity?
+	
+	currentspeed = mv->m_vecVelocity.Dot(wishdir);
+	
+	// wishspd is capped to 30, but as you can see under
+	addspeed = wishspd - currentspeed;
+	
+	if (addspeed <= 0)
+		return;
+	
+	// accelspeed also regulates it, so it is not always 30 but accelspeed.
+	accelspeed = accel * wishspeed * gpGlobals->frametime * player->m_surfaceFriction;
+
+	// so if accelspeed is 15 for example
+	if (accelspeed > addspeed)
+		accelspeed = addspeed;
+
+	for (i=0 ; i<3 ; i++)
+	{
+		// It will apply 15 * wishdir here.
+		// Wich means if we go always on the perpendicular of velocity
+		// We will deaccelerate when accelspeed < 30
+		// Because the used dot product won't correspond to the gain accelspeed.
+		mv->m_vecVelocity[i] += accelspeed * wishdir[i];
+		mv->m_outWishVel[i] += accelspeed * wishdir[i];
+	}
+}
+*/
+
+/*
+void CGameMovement::AirMove( void )
+{
+	int			i;
+	Vector		wishvel;
+	float		fmove, smove;
+	Vector		wishdir;
+	float		wishspeed;
+	Vector forward, right, up;
+
+	AngleVectors (mv->m_vecViewAngles, &forward, &right, &up);  // Determine movement angles
+	
+	// Copy movement amounts
+	fmove = mv->m_flForwardMove; // cmd->forwardmove
+	smove = mv->m_flSideMove; // cmd->sidemove
+	
+	// Zero out z components of movement vectors to remove upwards velocity
+	forward[2] = 0;
+	right[2]   = 0;
+	
+	VectorNormalize(forward);  
+	VectorNormalize(right); 
+
+	for (i = 0; i < 2; i++) //;
+		wishvel[i] = forward[i] * fmove + right[i] * smove; // As you can see here, the movement depends in the forwardmove and sidemove values;
+	
+	wishvel[2] = 0; // Z doesn't matter here
+
+	VectorCopy (wishvel, wishdir);
+	wishspeed = VectorNormalize(wishdir); // Basically it normalizes the vector in order to get the wishspeed desired from forwardmove/sidemove values
+	// So if mv->m_flMaxSpeed is = 260 it is not necessary to set the values for sidemove or forwardmove to 450, but only 260 (since it's the maximum you can get).
+	
+	if ( wishspeed != 0 && (wishspeed > mv->m_flMaxSpeed))
+	{
+		VectorScale (wishvel, mv->m_flMaxSpeed/wishspeed, wishvel);
+		wishspeed = mv->m_flMaxSpeed;
+	}
+	
+	// 
+	AirAccelerate( wishdir, wishspeed, sv_airaccelerate.GetFloat() );
+
+	// Add in any base velocity to the current velocity.
+	VectorAdd(mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
+
+	TryPlayerMove();
+
+	// Now pull the base velocity back out.   Base velocity is set if you are on a moving object, like a conveyor (or maybe another monster?)
+	VectorSubtract( mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
+}
+*/
