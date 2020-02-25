@@ -82,13 +82,51 @@ methodmap ServerMap
 	}
 }
 
+methodmap TypeMap
+{
+	property int Normal
+	{
+		public get()
+		{
+			return Type_Normal;
+		}
+	}
+	property int Surf
+	{
+		public get()
+		{
+			return Type_SurfOverride;
+		}
+	}
+	property int Manual
+	{
+		public get()
+		{
+			return Type_Override;
+		}
+	}
+	property int Size
+	{
+		public get()
+		{
+			return Type_Size;
+		}
+	}
+}
+
+TypeMap XutaxType;
 ServerMap Server;
 
 #include <kid_tas>
 
+//========================================================================================
+/*                                                                                      *
+ *                                        Startup                                       *
+ *                                                                                      */
+//========================================================================================
+
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-
 	CreateNative("TAS_ShouldProcessFrame", Native_ShouldProcess);
 
 	Server.IsLate = late;
@@ -117,26 +155,12 @@ public void OnPluginStart()
 			Client client = new Client(i);
 			if(client.IsConnected && client.IsInGame && !client.IsFakeClient)
 			{
-				client.OnPutInServer();
+				OnClientPutInServer(i);
 			}
 		}
 	}
 }
 
-public void OnPluginEnd()
-{
-	for(int i = 1; i <= MaxClients; ++i)
-	{
-		Client client = new Client(i);
-		if(client.Enabled)
-		{
-			string_8 convar;
-			convar.FromInt(Server.GetDefaultCheats());
-			Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
-			Server.HostTimescale.ReplicateToClient(client.Index, "1");
-		}
-	}
-}
 
 void LoadDHooks()
 {
@@ -202,73 +226,154 @@ void LoadDHooks()
 	delete gamedataConf;
 }
 
-public void OnClientPutInServer(int client)
+public void OnPluginEnd()
 {
-	Client.Create(client).OnPutInServer();
-}
-
-public void OnClientDisconnect(int client)
-{
-	Client.Create(client).OnDisconnect();
-}
-
-public Action Command_TasMenu(int client, int args)
-{
-	Client cl = new Client(client);
-	if(cl.Enabled)
+	for(int i = 1; i <= MaxClients; ++i)
 	{
-		cl.OpenMenu();
+		Client client = new Client(i);
+		if(client.Enabled)
+		{
+			string_8 convar;
+			convar.FromInt(Server.GetDefaultCheats());
+			Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
+			Server.HostTimescale.ReplicateToClient(client.Index, "1");
+		}
 	}
-	else
+}
+
+//========================================================================================
+/*                                                                                      *
+ *                                    Global Forwards                                   *
+ *                                                                                      */
+//========================================================================================
+
+public void OnClientPutInServer(int index)
+{
+	Client client = new Client(index);
+	SDKHook(index, SDKHook_PreThinkPost, OnPreThinkPost);
+	SDKHook(index, SDKHook_PostThinkPost, OnPostThink);
+	client.ResetVariables();
+}
+
+public void OnClientDisconnect(int index)
+{
+	// Client client = new Client(index);
+	SetXutaxStrafe(index, false);
+}
+
+public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings, int mouse[2])
+{
+	Client client = new Client(index);
+	client.Buttons = buttons;
+
+	if(!client.IsAlive || !client.Enabled)
 	{
-		ReplyToCommand(client, "You must be in TAS first");
+		return Plugin_Continue;
 	}
-	return Plugin_Handled;
+	
+	if(!client.ProcessFrame)
+	{
+		return Plugin_Continue;
+	}
+	if(client.AutoJump)
+	{
+		client.DoAutoJump(buttons);
+		return Plugin_Changed;
+	}
+
+	return Plugin_Continue;
 }
 
-public Action Command_TimeScale(int client, int args)
+public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
 {
-	string arg;
-	arg.GetCmdArg(1);
-
-	float scale = arg.FloatValue();
-
-	Client.Create(client).TimeScale = scale;
-
-	return Plugin_Handled;
+	// Client client = new Client(index);
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings, int mouse[2])
+public void Shavit_OnLeaveZone(int index, int type, int track, int id, int entity, int data)
 {
-	return Client.Create(client).OnTick(buttons, vel, angles, mouse);
+	if(type == Zone_Start)
+	{
+		Client client = new Client(index);
+		if(client.OnGround)
+		{
+			client.ForceJump = true;
+		}
+	}
 }
 
-public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
+public void Shavit_OnStyleChanged(int index, int oldstyle, int newstyle, int track, bool manual)
 {
-	Client.Create(client).OnTickPost(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse);
+	string_128 special;
+	Shavit_GetStyleStrings(newstyle, sSpecialString, special.StringValue, special.Size());
+
+	Client.Create(index).Enabled = special.Includes("TAS");
 }
 
-public void OnPreThinkPost(int client)
+//========================================================================================
+/*                                                                                      *
+ *                                   Private Forwards                                   *
+ *                                                                                      */
+//========================================================================================
+
+public void OnPreThinkPost(int index)
 {
-	Client.Create(client).OnPreThinkPost();
+	// Client client = new Client(index);
 }
 
-public void OnPostThink(int client)
+public void OnPostThink(int index)
 {
-	Client.Create(client).OnPostThink();
+	// Client client = new Client(index);
 }
+
+//========================================================================================
+/*                                                                                      *
+ *                                Process Movement DHooks                               *
+ *                                                                                      */
+//========================================================================================
 
 public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 {
-	int client = DHookGetParam(hParams, 1);
-	return Client.Create(client).OnProcessMovement();
+	int index = DHookGetParam(hParams, 1);
+	Client client = new Client(index);
+	if(!client.Enabled || client.Method == Method.Client)
+	{
+		return MRES_Ignored;
+	}
+
+	if(client.NextFrameTime <= 0.0)
+	{
+		client.NextFrameTime += (1.0 - client.TimeScale);
+		client.LastMoveType = client.Movetype;
+		client.ProcessFrame = (client.NextFrameTime <= 0.0);
+
+		return MRES_Ignored;
+	}
+	else
+	{
+		client.NextFrameTime -= client.TimeScale;
+		client.Movetype = MOVETYPE_NONE;
+		client.ProcessFrame = (client.NextFrameTime <= 0.0);
+
+		return MRES_Ignored;
+	}
 }
 
 public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 {
-	int client = DHookGetParam(hParams, 1);
-	return Client.Create(client).OnProcessMovementPost();
+	int index = DHookGetParam(hParams, 1);
+	Client client = new Client(index);
+
+	if(client.Enabled && client.Method != Method.Client)
+	{
+		client.Movetype = client.LastMoveType;
+	}
 }
+
+//========================================================================================
+/*                                                                                      *
+ *                                Handlers and Callbacks                                *
+ *                                                                                      */
+//========================================================================================
 
 public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 {
@@ -277,7 +382,7 @@ public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 		case MenuAction_Select:
 		{
 			Client client = new Client(param1);
-			string info;
+			string_8 info;
 			info.GetMenuInfo(menu, param2);
 
 			if(!client.Enabled)
@@ -299,7 +404,7 @@ public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 				{
 					client.TimeScale -= 0.1;
 				}
-				else if (info.Equals("jump"))
+				else if (info.Equals("jmp"))
 				{
 					client.AutoJump = !client.AutoJump;
 				}
@@ -310,12 +415,11 @@ public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 				else if(info.Equals("met"))
 				{
 					++client.Method;
-					if(Server.IsCSGO && client.Method == Method.Client)
-					{
-						++client.Method;
-					}
 				}
-
+				else if(info.Equals("ty"))
+				{
+					++client.Type;
+				}
 
 				client.OpenMenu();
 			}
@@ -330,23 +434,50 @@ public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity, int data)
+public Action Command_TasMenu(int index, int args)
 {
-	if(type == Zone_Start)
+	Client client = new Client(index);
+	if(client.Enabled)
 	{
-		Client.Create(client).OnLeaveStartZone();
+		client.OpenMenu();
 	}
+	else
+	{
+		client.ReplyToCommand("You must be in TAS first");
+	}
+
+	return Plugin_Handled;
 }
 
-public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
+public Action Command_TimeScale(int index, int args)
 {
-	string_128 special;
-	Shavit_GetStyleStrings(newstyle, sSpecialString, special.StringValue, special.Size());
+	string arg;
+	arg.GetCmdArg(1);
 
-	Client.Create(client).Enabled = special.Includes("TAS");
+	float scale = arg.FloatValue();
+
+	Client.Create(index).TimeScale = scale;
+
+	return Plugin_Handled;
 }
 
-// Stocks
+//========================================================================================
+/*                                                                                      *
+ *                                        Natives                                       *
+ *                                                                                      */
+//========================================================================================
+
+public any Native_ShouldProcess(Handle time, int numParams)
+{
+	return Client.Create(GetNativeCell(1)).ProcessFrame;
+}
+
+//========================================================================================
+/*                                                                                      *
+ *                                        Stocks                                        *
+ *                                                                                      */
+//========================================================================================
+
 public float NormalizeAngle(float angle)
 {
 	float temp = angle;
@@ -362,9 +493,4 @@ public float NormalizeAngle(float angle)
 	}
 	
 	return temp;
-}
-
-public any Native_ShouldProcess(Handle time, int numParams)
-{
-	return Client.Create(GetNativeCell(1)).ProcessFrame;
 }

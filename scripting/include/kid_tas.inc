@@ -18,15 +18,13 @@
 TODO: TAS will be considered done when all of these things have been completed
 1.	Calculated max prestrafe gains
 2.	Rewinds
-3.	Boosters verified to be working
-3a. 	Booster require gravity_booster_fix
 4.	Menu contains it's own cp menu
 5.	Run saving (with or without checkpoints included)
 */
 
 // private members
 static bool _Enabled[MAXPLAYERS+1];
-static float _LastGain[MAXPLAYERS+1];
+// static float _LastGain[MAXPLAYERS+1];
 static float _TimeScale[MAXPLAYERS+1] = {1.0, ...};
 static bool _StrafeHack[MAXPLAYERS+1] = {true, ...};
 static bool _FastWalk[MAXPLAYERS+1] = {true, ...};
@@ -37,6 +35,8 @@ static int _Buttons[MAXPLAYERS+1];
 static int _Method[MAXPLAYERS+1];
 static float _NextFrame[MAXPLAYERS+1];
 static bool _UseThisFrame[MAXPLAYERS+1];
+static MoveType _LastMoveType[MAXPLAYERS+1];
+static int _XutaxType[MAXPLAYERS+1];
 
 methodmap MethodMap
 {
@@ -109,6 +109,18 @@ methodmap Client < CBasePlayer
 		public set(MoveType type)
 		{
 			SetEntityMoveType(this.Index, type);
+		}
+	}
+
+	property MoveType LastMoveType
+	{
+		public get()
+		{
+			return _LastMoveType[this.Index];
+		}
+		public set(MoveType type)
+		{
+			_LastMoveType[this.Index] = type;
 		}
 	}
 
@@ -274,6 +286,12 @@ methodmap Client < CBasePlayer
 		public set(int value)
 		{
 			value %= Method.Size;
+			if(Server.IsCSGO && value == Method.Client
+			|| Server.IsCSS && value == Method.ServerClient)
+			{
+				++value;
+				value %= Method.Size;
+			}
 
 			if(value != _Method[this.Index])
 			{
@@ -292,8 +310,8 @@ methodmap Client < CBasePlayer
 						Server.HostTimescale.ReplicateToClient(this.Index, sValue.StringValue);
 					}
 				}
+				_Method[this.Index] = value;
 			}
-			_Method[this.Index] = value;
 		}
 	}
 
@@ -310,7 +328,7 @@ methodmap Client < CBasePlayer
 				return;
 			}
 
-			if(value < 0.0)
+			if(value < 0.1)
 			{
 				_TimeScale[this.Index] = 0.1;
 			}
@@ -335,11 +353,36 @@ methodmap Client < CBasePlayer
 		}
 	}
 
+	property int Type
+	{
+		public get()
+		{
+			return _XutaxType[this.Index];
+		}
+		public set(int value)
+		{
+			value %= XutaxType.Size;
+
+			if(value != _XutaxType[this.Index])
+			{
+				SetXutaxType(this.Index, value);
+				_XutaxType[this.Index] = value;
+			}
+		}
+	}
+
 	public void PrintToConsole(const char[] format, any ...)
 	{
 		string buffer;
 		VFormat(buffer.StringValue, buffer.Size(), format, 3);
 		PrintToConsole(this.Index, buffer.StringValue);
+	}
+
+	public void ReplyToCommand(const char[] format, any ...)
+	{
+		string buffer;
+		VFormat(buffer.StringValue, buffer.Size(), format, 3);
+		ReplyToCommand(this.Index, buffer.StringValue);
 	}
 
 	public void OpenMenu()
@@ -371,20 +414,34 @@ methodmap Client < CBasePlayer
 
 		menu.AddItem("sh", (this.StrafeHack ? "[X] Strafe hack" : "[ ] Strafe Hack"));
 		
-		if(this.Method == Method.Client)
+		if(this.StrafeHack)
 		{
-			menu.AddItem("met", "Method: Client");
-		}
-		else if(this.Method == Method.Server)
-		{
-			menu.AddItem("met", "Method: Server");
-		}
-		else if(this.Method == Method.ServerClient)
-		{
-			menu.AddItem("met", "Method: Server + Client");
-		}
-		
+			if(this.Method == Method.Client)
+			{
+				menu.AddItem("met", "Method: Client");
+			}
+			else if(this.Method == Method.Server)
+			{
+				menu.AddItem("met", "Method: Server");
+			}
+			else if(this.Method == Method.ServerClient)
+			{
+				menu.AddItem("met", "Method: Server + Client");
+			}
 
+			if(this.Type == XutaxType.Normal)
+			{
+				menu.AddItem("ty", "Type: Normal");
+			}
+			else if(this.Type == XutaxType.Surf)
+			{
+				menu.AddItem("ty", "Type: Surf");
+			}
+			else if(this.Type == XutaxType.Manual)
+			{
+				menu.AddItem("ty", "Type: Manual");
+			}
+		}
 		menu.Pagination = MENU_NO_PAGINATION;
 		menu.ExitButton = true;
 		menu.Display(this.Index, MENU_TIME_FOREVER);
@@ -393,11 +450,11 @@ methodmap Client < CBasePlayer
 	public void ResetVariables()
 	{
 		this.TimeScale = 1.0;
-		_LastGain[this.Index] = 0.0;
 		this.Enabled = false;
 		_StrafeHack[this.Index] = true;
 		this.FastWalk = true;
 		this.Method = Method.ServerClient;
+		this.Type = XutaxType.Surf;
 	}
 
 	public void DoFastWalk(float vel[3])
@@ -414,97 +471,16 @@ methodmap Client < CBasePlayer
 
 	public void DoAutoJump(int& buttons)
 	{
-		if(this.ForceJump && this.OnGround)
+		if(this.ForceJump)
 		{
-			buttons |= IN_JUMP;
-			this.ForceJump = false;
-		}
-	}
-
-	public MRESReturn OnProcessMovement()
-	{
-		if(!this.Enabled || this.Method == Method.Client)
-		{
-			return MRES_Ignored;
-		}
-
-		this.ProcessFrame = (this.NextFrameTime <= 0.0);
-
-		if(this.ProcessFrame)
-		{
-			this.NextFrameTime += (1.0 - this.TimeScale);
-			this.Movetype = MOVETYPE_WALK;
-			return MRES_Ignored;
-		}
-		else
-		{
-			this.NextFrameTime -= this.TimeScale;
-			this.Movetype = MOVETYPE_NONE;
-			return MRES_Ignored;
-		}
-	}
-
-	public MRESReturn OnProcessMovementPost()
-	{
-		if(this.Enabled && this.Method != Method.Client)
-		{
-			this.Movetype = MOVETYPE_WALK;
-		}
-	}
-
-	public void OnPreThinkPost()
-	{
-
-	}
-
-	public Action OnTick(int& buttons, float vel[3], float angles[3], int mouse[2])
-	{
-		this.Buttons = buttons;
-
-		if(!this.IsAlive || !this.Enabled)
-		{
-			return Plugin_Continue;
-		}
-		if(!this.ProcessFrame)
-		{
-			return Plugin_Continue;
-		}
-
-		if(this.AutoJump)
-		{
-			this.DoAutoJump(buttons);
-		}
-
-		return Plugin_Continue;
-	}
-
-	public void OnTickPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
-	{
-
-	}
-
-	public void OnPostThink()
-	{
-		// this.ProcessFrame = true;
-	}
-
-	public void OnPutInServer()
-	{
-		SDKHook(this.Index, SDKHook_PreThinkPost, OnPreThinkPost);
-		SDKHook(this.Index, SDKHook_PostThinkPost, OnPostThink);
-		this.ResetVariables();
-	}
-
-	public void OnDisconnect()
-	{
-		SetXutaxStrafe(this.Index, false);
-	}
-
-	public void OnLeaveStartZone()
-	{
-		if(this.OnGround)
-		{
-			this.ForceJump = true;
+			if(this.OnGround)
+			{
+				buttons |= IN_JUMP;
+			}
+			else
+			{
+				this.ForceJump = false;
+			}
 		}
 	}
 }
