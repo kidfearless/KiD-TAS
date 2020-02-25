@@ -16,10 +16,10 @@ public Action Command_StrafeType(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char args[3];
-	GetCmdArg(1, args, 3);
+	char arg[3];
+	GetCmdArg(1, arg, 3);
 
-	switch(args[0])
+	switch(arg[0])
 	{
 		case '0':
 		{
