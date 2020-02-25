@@ -2,6 +2,47 @@
 #include <xutaxstrafe>
 #include <shavit>
 
+public void OnPluginStart()
+{
+	RegConsoleCmd("sm_xutaxtype", Command_StrafeType, "Set's the strafehack override type");
+	RegConsoleCmd("sm_strafetype", Command_StrafeType, "Set's the strafehack override type");
+}
+
+public Action Command_StrafeType(int client, int args)
+{
+	if(args < 1)
+	{
+		ReplyToCommand(client, "sm_strafetype <0:Normal, 1:Surf, 2: Manual>");
+		return Plugin_Handled;
+	}
+
+	char args[3];
+	GetCmdArg(1, args, 3);
+
+	switch(args[0])
+	{
+		case '0':
+		{
+			SetXutaxType(client, 0);
+		}
+		case '1':
+		{
+			SetXutaxType(client, 1);
+			
+		}
+		case '2':
+		{
+			SetXutaxType(client, 2);
+		}
+		default:
+		{
+			ReplyToCommand(client, "invalid type specified");
+		}
+	}
+
+	return Plugin_Handled;
+}
+
 public void OnClientConnected(int client)
 {
 	SetXutaxStrafe(client, false);
