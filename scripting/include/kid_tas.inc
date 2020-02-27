@@ -78,6 +78,13 @@ methodmap MethodMap
 }
 MethodMap Method;
 
+enum Client
+{
+	INVALID_CLIENT = -1,
+	SERVER_CLIENT = 0,
+	CLIENT_SIZE = MAXPLAYERS
+}
+
 methodmap Client < CBasePlayer
 {
 	// constructors
@@ -85,7 +92,7 @@ methodmap Client < CBasePlayer
 	{
 		return view_as<Client>(client);
 	}
-
+ 
 	public static Client Create(int client)
 	{
 		return new Client(client);
@@ -323,11 +330,6 @@ methodmap Client < CBasePlayer
 		}
 		public set(float value)
 		{
-			if(!this.Enabled)
-			{
-				return;
-			}
-
 			if(value < 0.1)
 			{
 				_TimeScale[this.Index] = 0.1;
@@ -369,6 +371,30 @@ methodmap Client < CBasePlayer
 				_XutaxType[this.Index] = value;
 			}
 		}
+	}
+
+	property bool Valid
+	{
+		public get()
+		{
+			return (this > SERVER_CLIENT && this < CLIENT_SIZE);
+		}
+	}
+
+	public bool IsValid(bool checkIfAlive = false, bool checkIfBot = true)
+	{
+		// checks for valid index, if they are connected and in game, with options for checking bots and alive
+		return this.Valid && this.IsConnected && this.IsInGame && (!checkIfBot || (!this.IsFakeClient && !this.IsSourceTV)) && (!checkIfAlive || this.IsAlive);
+	}
+
+	public int GetProp( PropType propType, const char[] propName, int size = 4, int element = 0 )
+	{
+		return GetEntProp( this.Index, propType, propName, size, element );
+	}
+
+	public int GetPropEnt( PropType propType, const char[] propName, int element = 0 )
+	{
+		return GetEntPropEnt( this.Index, propType, propName, element );
 	}
 
 	public void PrintToConsole(const char[] format, any ...)
@@ -483,6 +509,28 @@ methodmap Client < CBasePlayer
 			}
 		}
 	}
+
+	public Client GetHUDTarget()
+	{
+		if(!this.IsSpectator)
+		{
+			return INVALID_CLIENT;
+		}
+
+		int mode = this.GetProp(Prop_Send, "m_iObserverMode");
+
+		if(mode >= 3 && mode <= 5)
+		{
+			Client result = new Client(view_as<int>(this.GetPropEnt(Prop_Send, "m_hObserverTarget")));
+
+			if(result.IsValid())
+			{
+				return result;
+			}
+		}
+		
+		return INVALID_CLIENT;
+	}
 }
 
 void ToggleTAS(Client client)
@@ -495,6 +543,7 @@ void ToggleTAS(Client client)
 	}
 	else
 	{
+		client.TimeScale = 1.0;
 		string_8 convar;
 		convar.FromInt(Server.GetDefaultCheats());
 		Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);

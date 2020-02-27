@@ -7,6 +7,7 @@
 #include <sdkhooks>
 #include <shavit>
 #include <dhooks>
+#include <cstrike>
 
 #include <string_test>
 #include <convar_class>
@@ -136,11 +137,14 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	// thanks xutaxkamay for pointing my head back to rngfix after i gave up on it.
+	// dhooks
 	LoadDHooks();
 
+	// commands
 	RegConsoleCmd("sm_tasmenu", Command_TasMenu, "opens tas menu");
 	RegConsoleCmd("sm_timescale", Command_TimeScale, "sets timescale");
 
+	// convars
 	Server.Cheats = FindConVar("sv_cheats");
 	Server.HostTimescale = FindConVar("host_timescale");
 
@@ -148,6 +152,7 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
+	// late loading stuff
 	if(g_bLate)
 	{
 		for(int i = 1; i <= MaxClients; ++i)
@@ -160,7 +165,6 @@ public void OnPluginStart()
 		}
 	}
 }
-
 
 void LoadDHooks()
 {
@@ -275,6 +279,7 @@ public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float v
 	{
 		return Plugin_Continue;
 	}
+
 	if(client.AutoJump)
 	{
 		client.DoAutoJump(buttons);
@@ -286,7 +291,34 @@ public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float v
 
 public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
 {
-	// Client client = new Client(index);
+	// create a Client from the player they are spectating
+	// So we just check if the target we get back is valid and on TAS.
+	Client client = new Client(index);
+
+	// check for valid client index
+	if(!client.IsValid(.checkIfAlive = false))
+	{
+		// client.PrintToConsole("invalid");
+		return;
+	}
+/* 
+	Client target = client.GetHUDTarget();
+
+	// GetHUDTarget checks for being a spectator. 
+	if(target.IsValid() && target.Enabled)
+	{
+		string_32 timescale;
+		timescale.FromFloat(target.TimeScale);
+		client.PrintToConsole("valid target: %f", target.TimeScale);
+		Server.HostTimescale.ReplicateToClient(client.Index, timescale.StringValue);
+		Server.Cheats.ReplicateToClient(client.Index, "2");
+	}
+	else  */if(!client.IsAlive)
+	{
+		client.PrintToConsole("%b %b %b %b %b",
+		target.Valid, target.IsConnected, target.IsInGame, ((!target.IsFakeClient, !target.IsSourceTV)), (target.IsAlive));
+		client.TimeScale = 1.0;
+	}
 }
 
 public void Shavit_OnLeaveZone(int index, int type, int track, int id, int entity, int data)
@@ -337,6 +369,7 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 	Client client = new Client(index);
 	if(!client.Enabled || client.Method == Method.Client)
 	{
+		client.ProcessFrame = true;
 		return MRES_Ignored;
 	}
 
@@ -456,7 +489,15 @@ public Action Command_TimeScale(int index, int args)
 
 	float scale = arg.FloatValue();
 
-	Client.Create(index).TimeScale = scale;
+	Client client = new Client(index);
+	if(!client.Enabled)
+	{
+		client.ReplyToCommand("You must be on TAS first.");
+	}
+	else
+	{
+		client.TimeScale = scale;
+	}
 
 	return Plugin_Handled;
 }

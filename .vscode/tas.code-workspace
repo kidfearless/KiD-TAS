@@ -1,11 +1,11 @@
 {
 	"folders": [
 		{
-			"path": "C:\\Users\\pe\\Documents\\GitHub\\KiD-TAS"
+			"path": "D:\\pe\\documents\\GitHub\\KiD-TAS"
 		}
 	],
 	"settings": {
-		"sourcepawnLanguageServer.sourcemod_home": "C:\\Users\\pe\\Documents\\GitHub\\KiD-TAS\\scripting\\include",
+		"sourcepawnLanguageServer.sourcemod_home": "D:\\pe\\documents\\GitHub\\KiD-TAS\\scripting\\include",
 		"workbench.colorCustomizations": {}
 	}
 }
