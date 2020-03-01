@@ -458,7 +458,7 @@ methodmap CBaseEntity __nullable__
 	 * @param angles	New angles, or NULL_VECTOR for no change.
 	 * @param velocity	New velocity, or NULL_VECTOR for no change.
 	*/
-	public void Teleport( const float origin[ 3 ], const float angles[ 3 ], const float velocity[ 3 ] )
+	public void Teleport(const float origin[3] = NULL_VECTOR, const float angles[3] = NULL_VECTOR, const float velocity[3] = NULL_VECTOR)
 	{
 		TeleportEntity( this.Ref, origin, angles, velocity );
 	}

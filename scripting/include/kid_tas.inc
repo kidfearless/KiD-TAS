@@ -37,7 +37,7 @@ static float _NextFrame[MAXPLAYERS+1];
 static bool _UseThisFrame[MAXPLAYERS+1];
 static MoveType _LastMoveType[MAXPLAYERS+1];
 static int _XutaxType[MAXPLAYERS+1];
-
+static ArrayList _Frames[MAXPLAYERS+1];
 methodmap MethodMap
 {
 	property int Client
@@ -88,7 +88,7 @@ enum Client
 methodmap Client < CBasePlayer
 {
 	// constructors
-	public Client(int client)
+	public Client(int client = 0)
 	{
 		return view_as<Client>(client);
 	}
@@ -144,6 +144,14 @@ methodmap Client < CBasePlayer
 		public get()
 		{
 			return Shavit_GetClientTrack(this.Index);
+		}
+	}
+
+	property bool InStartZone
+	{
+		public get()
+		{
+			return Shavit_InsideZone(this.Index, Zone_Start, -1);
 		}
 	}
 
@@ -210,9 +218,143 @@ methodmap Client < CBasePlayer
 		}
 	}
 
+	property bool Ducked
+	{
+		public get()
+		{
+			return !!GetEntProp(this.Index, Prop_Send, "m_bDucked");
+		}
+		public set(bool value)
+		{
+			SetEntProp(this.Index, Prop_Send, "m_bDucked", value);
+		}
+	}
+
+	property bool Ducking
+	{
+		public get()
+		{
+			return !!GetEntProp(this.Index, Prop_Send, "m_bDucking");
+		}
+		public set(bool value)
+		{
+			SetEntProp(this.Index, Prop_Send, "m_bDucking", value);
+		}
+	}
+
+	property float Stamina
+	{
+		public get()
+		{
+			return GetEntPropFloat(this.Index, Prop_Send, "m_flStamina");
+		}
+		public set(float value)
+		{
+			SetEntProp(this.Index, Prop_Send, "m_flStamina", value);
+		}
+	}
+
+	property float DuckSpeed
+	{
+		public get()
+		{
+			return GetEntPropFloat(this.Index, Prop_Send, "m_flDuckSpeed");
+		}
+		public set(float value)
+		{
+			SetEntProp(this.Index, Prop_Send, "m_flDuckSpeed", value);
+		}
+	}
+
+	property float DuckTime
+	{
+		public get()
+		{
+			if(Server.IsCSS)
+			{
+				GetEntPropFloat(this.Index, Prop_Send, "m_flDucktime");
+			}
+			else
+			{
+				GetEntPropFloat(this.Index, Prop_Send, "m_flDuckAmount");
+			}
+		}
+		public set(float value)
+		{
+			if(Server.IsCSS)
+			{
+				SetEntPropFloat(this.Index, Prop_Send, "m_flDucktime", value);
+			}
+			else
+			{
+				SetEntPropFloat(this.Index, Prop_Send, "m_flDuckAmount", value);
+			}
+		}
+	}
+
+	property int GroundEntity
+	{
+		public get()
+		{
+			return GetEntPropEnt(this.Index, Prop_Send, "m_hGroundEntity");
+		}
+		public set(int value)
+		{
+			SetEntPropEnt(this.Index, Prop_Data, "m_hGroundEntity", value);
+		}
+	}
+
+	property int Flags
+	{
+		public get()
+		{
+			return GetEntityFlags(this.Index);
+		}
+		public set(int value)
+		{
+			SetEntityFlags(this.Index, value);
+		}
+	}
+
+	property ArrayList Frames
+	{
+		public get()
+		{
+			return _Frames[this.Index];
+		}
+		public set(ArrayList value)
+		{
+			_Frames[this.Index] = value;
+		}
+	}
+
 	public void GetVelocity(float vecvelocity[3])
 	{
 		GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
+	}
+
+	public void GetBaseVelocity(float vec[3])
+	{
+		GetEntPropVector(this.Index, Prop_Data, "m_vecBaseVelocity", vec);
+	}
+
+	public void GetTargetName(char[] buffer, int length = 64)
+	{
+		GetEntPropString(this.Index, Prop_Data, "m_iName", buffer, length);
+	}
+
+	public void SetTargetName(char[] buffer)
+	{
+		SetEntPropString(this.Index, Prop_Data, "m_iName", buffer);
+	}
+
+	public void GetClassName(char[] buffer, int length = 64)
+	{
+		GetEntityClassname(this.Index, buffer, length);
+	}
+	public void SetClassName(char[] buffer)
+	{
+		SetEntPropString(this.Index, Prop_Data, "m_iClassname", buffer);
 	}
 
 	property bool OnGround
@@ -549,6 +691,172 @@ void ToggleTAS(Client client)
 		Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
 		Server.HostTimescale.ReplicateToClient(client.Index, "1");
 	}
+}
+
+enum struct TASFrame
+{
+	int index; // current index of that frame to put them in
+
+	float time;
+	int jumps;
+	int strafes;
+	int totalmeasures;
+	int gains;
+
+	float origin[3];
+	float angles[3];
+	float velocity[3];
+	float basevelocity[3];
+	// MoveType movetype;
+	char movetype;
+	float gravity;
+	float speed;
+	float stamina;
+	// bool ducked;
+	// bool ducking;
+	char ducked;
+	char ducking;
+	float ducktime; // m_flDuckAmount in csgo
+	float duckspeed; // m_flDuckSpeed in csgo; doesn't exist in css
+	int flags;
+	char targetname[64];
+	// int targetname;
+	char classname[64];
+	// int classname;
+	int groundentity;
+
+	void Update(Client client)
+	{
+		client.GetAbsOrigin(this.origin);
+		client.GetEyeAngles(this.angles);
+		client.GetVelocity(this.velocity);
+		client.GetBaseVelocity(this.basevelocity);
+		client.GetTargetName(this.targetname);
+		client.GetClassName(this.classname);
+
+		this.movetype = view_as<char>(client.Movetype);
+		this.gravity = client.Gravity;
+		this.speed = client.LaggedMovementValue;
+
+		this.stamina = client.Stamina;
+		this.groundentity = client.GroundEntity;
+		
+		this.flags = client.Flags;
+
+		this.ducked = view_as<char>(client.Ducked);
+		this.ducking = view_as<char>(client.Ducking);
+		
+		this.ducktime = client.DuckTime;
+		if(Server.IsCSGO)
+		{
+			this.duckspeed = client.DuckSpeed;
+		}
+		
+
+		timer_snapshot_t snapshot;
+
+		Shavit_SaveSnapshot(client.Index, snapshot);
+
+		this.time = snapshot.fCurrentTime;
+		this.jumps = snapshot.iJumps;
+		this.strafes = snapshot.iStrafes;
+		this.totalmeasures = snapshot.iTotalMeasures;
+		this.gains = snapshot.iGoodGains;
+	}
+
+	void Set(Client client)
+	{
+		if(IsNullVector(this.origin))
+		{
+			return;
+		}
+
+		if(!client.IsAlive)
+		{
+			// Shavit_PrintToChat(client.Index, "%T", "CommandAlive", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+			return;
+		}
+
+		if(Shavit_InsideZone(client.Index, Zone_Start, -1))
+		{
+			Shavit_StopTimer(client.Index);
+		}
+
+		MoveType mt = this.movetype;
+
+		if(mt == MOVETYPE_LADDER || mt == MOVETYPE_WALK)
+		{
+			client.Movetype = mt;
+		}
+
+		client.Flags = this.flags;
+		client.LaggedMovementValue = this.speed;
+		client.GroundEntity = this.groundentity;
+		client.Stamina = this.stamina;
+		client.Ducked = !!this.ducked;
+		client.Ducking = !!this.ducking;
+		client.DuckTime = this.ducktime;
+
+		if(Server.IsCSGO)
+		{
+			client.DuckSpeed = this.duckspeed;
+		}
+
+		timer_snapshot_t snapshot;
+		snapshot.bTimerEnabled = true;
+		snapshot.fCurrentTime = this.time;
+		snapshot.bClientPaused = false;
+		snapshot.iJumps = this.jumps;
+		snapshot.bsStyle = client.Style;
+		snapshot.iTotalMeasures = this.totalmeasures;
+		snapshot.iGoodGains = this.gains;
+		snapshot.iSHSWCombination = 0;
+		snapshot.iTimerTrack = client.Track;
+		snapshot.iMeasuredJumps = snapshot.iJumps;
+		snapshot.iPerfectJumps = snapshot.iJumps;
+
+		Shavit_LoadSnapshot(client.Index, snapshot);
+		Shavit_ResumeTimer(client.Index);
+
+		float vel[3];
+		AddVectors(vel, this.basevelocity, this.velocity);
+
+		client.SetTargetName(this.targetname);
+		client.SetClassName(this.classname);
+		
+		client.Teleport(this.origin, this.angles, vel);
+
+		client.Gravity = this.gravity;
+		
+		// Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, index, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+		
+	}
+}
+
+stock Client operator++(Client client)
+{
+	return view_as<Client>(view_as<int>(client)++);
+}
+
+stock bool operator<(Client client, int value)
+{
+	return view_as<int>(client) < value;
+}
+
+stock bool operator<=(Client client, int value)
+{
+	return view_as<int>(client) <= value;
+}
+
+stock bool operator==(Client client, int value)
+{
+	return view_as<int>(client) == value;
+}
+
+stock bool operator>=(Client client, int value)
+{
+	return view_as<int>(client) >= value;
 }
 
 #define DEBUG 0

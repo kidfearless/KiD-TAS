@@ -19,102 +19,13 @@ public Plugin myinfo =
 	name = "Shavit - TAS", 
 	author = "KiD Fearless", 
 	description = "TAS module for shavits timer.", 
-	version = "2.0", 
+	version = "2.1", 
 	url = "https://github.com/kidfearless/"
 };
 
-ConVar sv_cheats;
-ConVar host_timescale;
-Convar g_cDefaultCheats;
-bool g_bLate;
+StringMap g_smCheckPoints;
 
-methodmap ServerMap
-{
-	property ConVar Cheats
-	{
-		public get()
-		{
-			return sv_cheats;
-		}
-		public set(ConVar value)
-		{
-			sv_cheats = value;
-		}
-	}
-	property ConVar HostTimescale
-	{
-		public get()
-		{
-			return host_timescale;
-		}
-		public set(ConVar value)
-		{
-			host_timescale = value;
-		}
-	}
-	property bool IsLate
-	{
-		public get()
-		{
-			return g_bLate;
-		}
-		public set(bool value)
-		{
-			g_bLate = value;
-		}
-	}
-	property bool IsCSGO
-	{
-		public get()
-		{
-			return GetEngineVersion() == Engine_CSGO;
-		}
-	}
-	property bool IsCSS
-	{
-		public get()
-		{
-			return GetEngineVersion() == Engine_CSS;
-		}
-	}
-	public int GetDefaultCheats()
-	{
-		return g_cDefaultCheats.IntValue;
-	}
-}
-
-methodmap TypeMap
-{
-	property int Normal
-	{
-		public get()
-		{
-			return Type_Normal;
-		}
-	}
-	property int Surf
-	{
-		public get()
-		{
-			return Type_SurfOverride;
-		}
-	}
-	property int Manual
-	{
-		public get()
-		{
-			return Type_Override;
-		}
-	}
-	property int Size
-	{
-		public get()
-		{
-			return Type_Size;
-		}
-	}
-}
-
+#include <methodmaps>
 TypeMap XutaxType;
 ServerMap Server;
 
@@ -148,12 +59,22 @@ public void OnPluginStart()
 	Server.Cheats = FindConVar("sv_cheats");
 	Server.HostTimescale = FindConVar("host_timescale");
 
-	g_cDefaultCheats = new Convar("kid_tas_cheats_default", "2", "Default sv_cheats value, used for servers that set cheats on connect.");
+	Server.DefaultCheats = new Convar("kid_tas_cheats_default", "2", "Default sv_cheats value, used for servers that set cheats on connect.");
 
 	Convar.AutoExecConfig();
 
+
+	// frames
+	for(Client client = new Client(); client <= MaxClients; ++client)
+	{
+		client.Frames = new ArrayList(sizeof(TASFrame));
+	}
+
+	// checkpoints
+	g_smCheckPoints = new StringMap();
+
 	// late loading stuff
-	if(g_bLate)
+	if(Server.IsLate)
 	{
 		for(int i = 1; i <= MaxClients; ++i)
 		{
@@ -257,6 +178,7 @@ public void OnClientPutInServer(int index)
 	SDKHook(index, SDKHook_PreThinkPost, OnPreThinkPost);
 	SDKHook(index, SDKHook_PostThinkPost, OnPostThink);
 	client.ResetVariables();
+	client.Frames.Clear();
 }
 
 public void OnClientDisconnect(int index)
@@ -280,13 +202,18 @@ public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float v
 		return Plugin_Continue;
 	}
 
+	Action returnValue = Plugin_Continue;
+
 	if(client.AutoJump)
 	{
 		client.DoAutoJump(buttons);
-		return Plugin_Changed;
+		returnValue = Plugin_Changed;
 	}
 
-	return Plugin_Continue;
+
+	
+
+	return returnValue;
 }
 
 public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
@@ -301,22 +228,17 @@ public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float 
 		// client.PrintToConsole("invalid");
 		return;
 	}
-/* 
-	Client target = client.GetHUDTarget();
 
-	// GetHUDTarget checks for being a spectator. 
-	if(target.IsValid() && target.Enabled)
+	if(!client.InStartZone)
 	{
-		string_32 timescale;
-		timescale.FromFloat(target.TimeScale);
-		client.PrintToConsole("valid target: %f", target.TimeScale);
-		Server.HostTimescale.ReplicateToClient(client.Index, timescale.StringValue);
-		Server.Cheats.ReplicateToClient(client.Index, "2");
+		TasFrame frame;
+		frame.Update(client);
+		client.Frames.PushArray(frame);		
 	}
-	else  */if(!client.IsAlive)
+
+
+	if(!client.IsAlive)
 	{
-		client.PrintToConsole("%b %b %b %b %b",
-		target.Valid, target.IsConnected, target.IsInGame, ((!target.IsFakeClient, !target.IsSourceTV)), (target.IsAlive));
 		client.TimeScale = 1.0;
 	}
 }
