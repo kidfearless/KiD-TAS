@@ -23,7 +23,7 @@ public Plugin myinfo =
 	url = "https://github.com/kidfearless/"
 };
 
-StringMap g_smCheckPoints;
+stock StringMap g_smCheckPoints;
 
 #include <methodmaps>
 TypeMap XutaxType;
@@ -54,6 +54,10 @@ public void OnPluginStart()
 	// commands
 	RegConsoleCmd("sm_tasmenu", Command_TasMenu, "opens tas menu");
 	RegConsoleCmd("sm_timescale", Command_TimeScale, "sets timescale");
+	RegConsoleCmd("+rewind", Command_Rewind, "turns on rewinding");
+	RegConsoleCmd("-rewind", Command_Rewind, "sets off rewinding");
+	RegConsoleCmd("+fastforward", Command_Forward, "turns on fast forwarding");
+	RegConsoleCmd("-fastforward", Command_Forward, "turns off fast forwarding");
 
 	// convars
 	Server.Cheats = FindConVar("sv_cheats");
@@ -65,7 +69,7 @@ public void OnPluginStart()
 
 
 	// frames
-	for(Client client = new Client(); client <= MaxClients; ++client)
+	for(Client client = 0; client <= MaxClients; ++client)
 	{
 		client.Frames = new ArrayList(sizeof(TASFrame));
 	}
@@ -76,12 +80,11 @@ public void OnPluginStart()
 	// late loading stuff
 	if(Server.IsLate)
 	{
-		for(int i = 1; i <= MaxClients; ++i)
+		for(Client client = 0; client <= MaxClients; ++client)
 		{
-			Client client = new Client(i);
 			if(client.IsConnected && client.IsInGame && !client.IsFakeClient)
 			{
-				OnClientPutInServer(i);
+				OnClientPutInServer(client);
 			}
 		}
 	}
@@ -153,9 +156,8 @@ void LoadDHooks()
 
 public void OnPluginEnd()
 {
-	for(int i = 1; i <= MaxClients; ++i)
+	for(Client client = 0; client <= MaxClients; ++client)
 	{
-		Client client = new Client(i);
 		if(client.Enabled)
 		{
 			string_8 convar;
@@ -175,8 +177,8 @@ public void OnPluginEnd()
 public void OnClientPutInServer(int index)
 {
 	Client client = new Client(index);
-	SDKHook(index, SDKHook_PreThinkPost, OnPreThinkPost);
-	SDKHook(index, SDKHook_PostThinkPost, OnPostThink);
+	SDKHook(client, SDKHook_PreThinkPost, OnPreThinkPost);
+	SDKHook(client, SDKHook_PostThinkPost, OnPostThink);
 	client.ResetVariables();
 	client.Frames.Clear();
 }
@@ -210,7 +212,16 @@ public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float v
 		returnValue = Plugin_Changed;
 	}
 
-
+	if(client.InStartZone)
+	{
+		client.Frames.Clear();
+	}
+	else
+	{		
+		TASFrame frame;
+		frame.Update(client);
+		client.Frames.PushArray(frame);
+	}
 	
 
 	return returnValue;
@@ -228,14 +239,6 @@ public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float 
 		// client.PrintToConsole("invalid");
 		return;
 	}
-
-	if(!client.InStartZone)
-	{
-		TASFrame frame;
-		frame.Update(client);
-		client.Frames.PushArray(frame);		
-	}
-
 
 	if(!client.IsAlive)
 	{
@@ -421,6 +424,39 @@ public Action Command_TimeScale(int index, int args)
 
 	return Plugin_Handled;
 }
+
+public Action Command_Rewind(int index, int args)
+{
+	Client client = new Client(index);
+	if(client.Enabled)
+	{
+		client.Rewind = !client.Rewind;
+	}
+	else
+	{
+		client.ReplyToCommand("You must be on TAS first.");
+	}
+
+	return Plugin_Handled;
+}
+
+
+public Action Command_Forward(int index, int args)
+{
+	Client client = new Client(index);
+	if(client.Enabled)
+	{
+		client.FastForward = !client.FastForward;
+	}
+	else
+	{
+		client.ReplyToCommand("You must be on TAS first.");
+	}
+
+	return Plugin_Handled;
+}
+
+
 
 //========================================================================================
 /*                                                                                      *

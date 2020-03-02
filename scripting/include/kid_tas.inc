@@ -13,14 +13,47 @@
 #include <convar_class>
 #include <thelpers/thelpers>
 #include <xutaxstrafe>
-/*
 
+/*
 TODO: TAS will be considered done when all of these things have been completed
 1.	Calculated max prestrafe gains
 2.	Rewinds
 4.	Menu contains it's own cp menu
 5.	Run saving (with or without checkpoints included)
 */
+
+methodmap DirectionMap
+{
+	property int Backwards
+	{
+		public get()
+		{
+			return -1;
+		}
+	}
+	property int None
+	{
+		public get()
+		{
+			return 0;
+		}
+	}
+	property int Forwards
+	{
+		public get()
+		{
+			return 1;
+		}
+	}
+	property int Size
+	{
+		public get()
+		{
+			return 2;
+		}
+	}
+}
+DirectionMap Direction;
 
 // private members
 static bool _Enabled[MAXPLAYERS+1];
@@ -38,6 +71,9 @@ static bool _UseThisFrame[MAXPLAYERS+1];
 static MoveType _LastMoveType[MAXPLAYERS+1];
 static int _XutaxType[MAXPLAYERS+1];
 static ArrayList _Frames[MAXPLAYERS+1];
+static int _CurrentFrame[MAXPLAYERS+1];
+static int _Direction[MAXPLAYERS+1];
+
 methodmap MethodMap
 {
 	property int Client
@@ -78,6 +114,7 @@ methodmap MethodMap
 }
 MethodMap Method;
 
+// predefined client types
 enum Client
 {
 	INVALID_CLIENT = -1,
@@ -86,6 +123,27 @@ enum Client
 }
 
 // implicit casting
+
+stock bool operator=(char value)
+{
+	return !!value;
+}
+
+stock char operator=(bool value)
+{
+	return view_as<char>(value);
+}
+
+stock MoveType operator=(char value)
+{
+	return view_as<MoveType>(value);
+}
+
+stock char operator=(MoveType value)
+{
+	return view_as<char>(value);
+}
+
 stock Client operator=(int value)
 {
 	return view_as<Client>(value);
@@ -564,6 +622,48 @@ methodmap Client < CBasePlayer
 		}
 	}
 
+	property bool FastForward
+	{
+		public get()
+		{
+			return _Direction[this] == Direction.Forwards;
+		}
+		public set(bool value)
+		{
+			if(value)
+			{
+				_Direction[this] = Direction.Forwards
+			}
+			else
+			{
+				_Direction[this] = Direction.None;
+			}
+		}
+	}
+
+	property bool Rewind
+	{
+		public get()
+		{
+			return _Direction[this] == Direction.Backwards;
+		}
+		public set(bool value)
+		{
+			if(value)
+			{
+				_Direction[this] = Direction.Backwards
+			}
+			else
+			{
+				_Direction[this] = Direction.None;
+			}
+		}
+	}
+
+	property int _CurrentFrame{
+		
+	}
+
 	public bool IsValid(bool checkIfAlive = false, bool checkIfBot = true)
 	{
 		// checks for valid index, if they are connected and in game, with options for checking bots and alive
@@ -721,7 +821,7 @@ void ToggleTAS(Client client)
 	if(client.Enabled)
 	{
 		// Keeping this as it's TAS, should honestly have access to everything available
-		Server.Cheats.ReplicateToClient(client.Index, "2");
+		Server.Cheats.ReplicateToClient(client, "2");
 		client.OpenMenu();
 	}
 	else
@@ -729,8 +829,8 @@ void ToggleTAS(Client client)
 		client.TimeScale = 1.0;
 		string_8 convar;
 		convar.FromInt(Server.GetDefaultCheats());
-		Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
-		Server.HostTimescale.ReplicateToClient(client.Index, "1");
+		Server.Cheats.ReplicateToClient(client, convar.StringValue);
+		Server.HostTimescale.ReplicateToClient(client, "1");
 	}
 }
 
@@ -775,7 +875,7 @@ enum struct TASFrame
 		client.GetTargetName(this.targetname);
 		client.GetClassName(this.classname);
 
-		this.movetype = view_as<char>(client.Movetype);
+		this.movetype = client.Movetype;
 		this.gravity = client.Gravity;
 		this.speed = client.LaggedMovementValue;
 
@@ -784,19 +884,18 @@ enum struct TASFrame
 		
 		this.flags = client.Flags;
 
-		this.ducked = view_as<char>(client.Ducked);
-		this.ducking = view_as<char>(client.Ducking);
+		this.ducked = client.Ducked;
+		this.ducking = client.Ducking;
 		
 		this.ducktime = client.DuckTime;
 		if(Server.IsCSGO)
 		{
 			this.duckspeed = client.DuckSpeed;
 		}
-		
 
 		timer_snapshot_t snapshot;
 
-		Shavit_SaveSnapshot(client.Index, snapshot);
+		Shavit_SaveSnapshot(client, snapshot);
 
 		this.time = snapshot.fCurrentTime;
 		this.jumps = snapshot.iJumps;
@@ -814,14 +913,14 @@ enum struct TASFrame
 
 		if(!client.IsAlive)
 		{
-			// Shavit_PrintToChat(client.Index, "%T", "CommandAlive", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+			// Shavit_PrintToChat(client, "%T", "CommandAlive", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 			return;
 		}
 
-		if(Shavit_InsideZone(client.Index, Zone_Start, -1))
+		if(Shavit_InsideZone(client, Zone_Start, -1))
 		{
-			Shavit_StopTimer(client.Index);
+			Shavit_StopTimer(client);
 		}
 
 		MoveType mt = this.movetype;
@@ -835,8 +934,8 @@ enum struct TASFrame
 		client.LaggedMovementValue = this.speed;
 		client.GroundEntity = this.groundentity;
 		client.Stamina = this.stamina;
-		client.Ducked = !!this.ducked;
-		client.Ducking = !!this.ducking;
+		client.Ducked = this.ducked;
+		client.Ducking = this.ducking;
 		client.DuckTime = this.ducktime;
 
 		if(Server.IsCSGO)
@@ -857,8 +956,8 @@ enum struct TASFrame
 		snapshot.iMeasuredJumps = snapshot.iJumps;
 		snapshot.iPerfectJumps = snapshot.iJumps;
 
-		Shavit_LoadSnapshot(client.Index, snapshot);
-		Shavit_ResumeTimer(client.Index);
+		Shavit_LoadSnapshot(client, snapshot);
+		Shavit_ResumeTimer(client);
 
 		float vel[3];
 		AddVectors(vel, this.basevelocity, this.velocity);
