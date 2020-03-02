@@ -327,75 +327,16 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 
 //========================================================================================
 /*                                                                                      *
- *                                Handlers and Callbacks                                *
+ *                                       Commands                                       *
  *                                                                                      */
 //========================================================================================
-
-public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
-{
-	switch(action)
-	{
-		case MenuAction_Select:
-		{
-			Client client = new Client(param1);
-			string_8 info;
-			info.GetMenuInfo(menu, param2);
-
-			if(!client.Enabled)
-			{
-				return 0;
-			}
-
-			if (info.Equals("cp"))
-			{
-				FakeClientCommand(client, "sm_cpmenu");
-			}
-			else
-			{
-				if (info.Equals("++"))
-				{
-					client.TimeScale += 0.1;
-				}
-				else if (info.Equals("--"))
-				{
-					client.TimeScale -= 0.1;
-				}
-				else if (info.Equals("jmp"))
-				{
-					client.AutoJump = !client.AutoJump;
-				}
-				else if(info.Equals("sh"))
-				{
-					client.StrafeHack = !client.StrafeHack;
-				}
-				else if(info.Equals("met"))
-				{
-					++client.Method;
-				}
-				else if(info.Equals("ty"))
-				{
-					++client.Type;
-				}
-
-				client.OpenMenu();
-			}
-		}
-
-		case MenuAction_End:
-		{
-			delete menu;
-		}
-	}
-
-	return 0;
-}
 
 public Action Command_TasMenu(int index, int args)
 {
 	Client client = new Client(index);
 	if(client.Enabled)
 	{
-		client.OpenMenu();
+		client.OpenTASMenu();
 	}
 	else
 	{
@@ -455,7 +396,6 @@ public Action Command_Forward(int index, int args)
 
 	return Plugin_Handled;
 }
-
 
 
 //========================================================================================

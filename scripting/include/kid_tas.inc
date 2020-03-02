@@ -22,6 +22,12 @@ TODO: TAS will be considered done when all of these things have been completed
 5.	Run saving (with or without checkpoints included)
 */
 
+//========================================================================================
+/*                                                                                      *
+ *                                   private c# enums                                   *
+ *                                                                                      */
+//========================================================================================
+
 methodmap DirectionMap
 {
 	property int Backwards
@@ -54,25 +60,6 @@ methodmap DirectionMap
 	}
 }
 DirectionMap Direction;
-
-// private members
-static bool _Enabled[MAXPLAYERS+1];
-// static float _LastGain[MAXPLAYERS+1];
-static float _TimeScale[MAXPLAYERS+1] = {1.0, ...};
-static bool _StrafeHack[MAXPLAYERS+1] = {true, ...};
-static bool _FastWalk[MAXPLAYERS+1] = {true, ...};
-static bool _AutoJump[MAXPLAYERS+1] = {true, ...};
-static bool _ForceJump[MAXPLAYERS+1];
-static bool _FastWalkDirection[MAXPLAYERS+1];
-static int _Buttons[MAXPLAYERS+1];
-static int _Method[MAXPLAYERS+1];
-static float _NextFrame[MAXPLAYERS+1];
-static bool _UseThisFrame[MAXPLAYERS+1];
-static MoveType _LastMoveType[MAXPLAYERS+1];
-static int _XutaxType[MAXPLAYERS+1];
-static ArrayList _Frames[MAXPLAYERS+1];
-static int _CurrentFrame[MAXPLAYERS+1];
-static int _Direction[MAXPLAYERS+1];
 
 methodmap MethodMap
 {
@@ -114,7 +101,39 @@ methodmap MethodMap
 }
 MethodMap Method;
 
-// predefined client types
+//========================================================================================
+/*                                                                                      *
+ *                                    private members                                   *
+ *                                                                                      */
+//========================================================================================
+
+static bool _Enabled[MAXPLAYERS+1];
+static float _TimeScale[MAXPLAYERS+1] = {1.0, ...};
+static bool _StrafeHack[MAXPLAYERS+1] = {true, ...};
+static bool _FastWalk[MAXPLAYERS+1] = {true, ...};
+static bool _AutoJump[MAXPLAYERS+1] = {true, ...};
+static bool _ForceJump[MAXPLAYERS+1];
+static bool _FastWalkDirection[MAXPLAYERS+1];
+static int _Buttons[MAXPLAYERS+1];
+static int _Method[MAXPLAYERS+1];
+static float _NextFrame[MAXPLAYERS+1];
+static bool _UseThisFrame[MAXPLAYERS+1];
+static MoveType _LastMoveType[MAXPLAYERS+1];
+static int _XutaxType[MAXPLAYERS+1];
+static ArrayList _Frames[MAXPLAYERS+1];
+static int _CurrentFrame[MAXPLAYERS+1];
+static int _SavedFrame[MAXPLAYERS+1];
+static int _Direction[MAXPLAYERS+1];
+static int _UseCheckPoints[MAXPLAYERS+1];
+static float _EditSpeed[MAXPLAYERS+1];
+
+
+//========================================================================================
+/*                                                                                      *
+ *                               predefined client objects                              *
+ *                                                                                      */
+//========================================================================================
+
 enum Client
 {
 	INVALID_CLIENT = -1,
@@ -122,7 +141,11 @@ enum Client
 	CLIENT_SIZE = MAXPLAYERS
 }
 
-// implicit casting
+//========================================================================================
+/*                                                                                      *
+ *                                   implicit casting                                   *
+ *                                                                                      */
+//========================================================================================
 
 stock bool operator=(char value)
 {
@@ -184,9 +207,16 @@ stock bool operator>=(Client client, int value)
 	return view_as<int>(client) >= value;
 }
 
+
+//========================================================================================
+/*                                                                                      *
+ *                                     Client object                                    *
+ *                                                                                      */
+//========================================================================================
+
 methodmap Client < CBasePlayer
 {
-	// constructors
+	//──── constructors ──────────────────────────────────────────────────────────────────────
 	public Client(int client = 0)
 	{
 		return view_as<Client>(client);
@@ -197,7 +227,7 @@ methodmap Client < CBasePlayer
 		return new Client(client);
 	}
 
-	// public members
+	//──── public properties ─────────────────────────────────────────────────────────────────
 	property int Index
 	{
 		public get()
@@ -427,35 +457,6 @@ methodmap Client < CBasePlayer
 		}
 	}
 
-	public void GetVelocity(float vecvelocity[3])
-	{
-		GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
-	}
-
-	public void GetBaseVelocity(float vec[3])
-	{
-		GetEntPropVector(this, Prop_Data, "m_vecBaseVelocity", vec);
-	}
-
-	public void GetTargetName(char[] buffer, int length = 64)
-	{
-		GetEntPropString(this, Prop_Data, "m_iName", buffer, length);
-	}
-
-	public void SetTargetName(char[] buffer)
-	{
-		SetEntPropString(this, Prop_Data, "m_iName", buffer);
-	}
-
-	public void GetClassName(char[] buffer, int length = 64)
-	{
-		GetEntityClassname(this, buffer, length);
-	}
-	public void SetClassName(char[] buffer)
-	{
-		SetEntPropString(this, Prop_Data, "m_iClassname", buffer);
-	}
-
 	property bool OnGround
 	{
 		public get()
@@ -660,8 +661,94 @@ methodmap Client < CBasePlayer
 		}
 	}
 
-	property int _CurrentFrame{
-		
+	property int CurrentFrame
+	{
+		public get()
+		{
+			return _CurrentFrame[this];
+		}
+		public set(int value)
+		{
+			_CurrentFrame[this] = value;
+		}
+	}
+
+	property int SavedFrame
+	{
+		public get()
+		{
+			return _SavedFrame[this];
+		}
+		public set(int value)
+		{
+			_SavedFrame[this] = value;
+		}
+	}
+
+	property float EditSpeed
+	{
+		public get()
+		{
+			return _EditSpeed[this];
+		}
+		public set(float value)
+		{
+			if(value < 0.1)
+			{
+				_EditSpeed[this] = 0.1;
+			}
+			else if(value > 2.0)
+			{
+				_EditSpeed[this] = 2.0;
+			}
+			else
+			{
+				_EditSpeed[this] = value;
+			}
+		}
+	}
+
+	property bool UseCheckpoints
+	{
+		public get()
+		{
+			return _UseCheckPoints[this] == 1;
+		}
+		public set(bool value)
+		{
+			_UseCheckPoints[this] = value;
+		}
+	}
+
+	//──── public methods ────────────────────────────────────────────────────────────────────
+	public void GetVelocity(float vecvelocity[3])
+	{
+		GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
+	}
+
+	public void GetBaseVelocity(float vec[3])
+	{
+		GetEntPropVector(this, Prop_Data, "m_vecBaseVelocity", vec);
+	}
+
+	public void GetTargetName(char[] buffer, int length = 64)
+	{
+		GetEntPropString(this, Prop_Data, "m_iName", buffer, length);
+	}
+
+	public void SetTargetName(char[] buffer)
+	{
+		SetEntPropString(this, Prop_Data, "m_iName", buffer);
+	}
+
+	public void GetClassName(char[] buffer, int length = 64)
+	{
+		GetEntityClassname(this, buffer, length);
+	}
+	
+	public void SetClassName(char[] buffer)
+	{
+		SetEntPropString(this, Prop_Data, "m_iClassname", buffer);
 	}
 
 	public bool IsValid(bool checkIfAlive = false, bool checkIfBot = true)
@@ -694,64 +781,115 @@ methodmap Client < CBasePlayer
 		ReplyToCommand(this, buffer.StringValue);
 	}
 
-	public void OpenMenu()
+	public void OpenTASMenu()
 	{
 		if(!this.Enabled)
 		{
-			// DebugPrint("OpenMenu Not Enabled");
+			return;
+		}
 
+		if(_UseCheckPoints[this] == -1)
+		{
+			OpenTASTypeMenu(this);
 			return;
 		}
 
 		Menu menu = new Menu(MenuHandler_TAS);
-
 		menu.SetTitle("TAS Menu\n");
 
-		string buffer;
-
-		menu.AddItem("cp", "Checkpoint Menu");
-
-		buffer.Format("--Timescale\nCurrent Timescale: %.1f", this.TimeScale + 0.001);
-
-		menu.AddItem("--", buffer.StringValue, ITEMDRAW_DEFAULT);
-
-
-		menu.AddItem("++", "++Timescale",   ITEMDRAW_DEFAULT);
-
-
-		menu.AddItem("jmp", (this.AutoJump ? "[X] Auto-jump from start zone?" : "[ ] Auto-jump from start zone?"));
-
-		menu.AddItem("sh", (this.StrafeHack ? "[X] Strafe hack" : "[ ] Strafe Hack"));
-		
-		if(this.StrafeHack)
+		if(this.UseCheckpoints)
 		{
-			if(this.Method == Method.Client)
-			{
-				menu.AddItem("met", "Method: Client");
-			}
-			else if(this.Method == Method.Server)
-			{
-				menu.AddItem("met", "Method: Server");
-			}
-			else if(this.Method == Method.ServerClient)
-			{
-				menu.AddItem("met", "Method: Server + Client");
-			}
+			string buffer;
 
-			if(this.Type == XutaxType.Normal)
+			menu.AddItem("cp", "Checkpoint Menu");
+
+			buffer.Format("--Timescale\nCurrent Timescale: %.1f", this.TimeScale + 0.001);
+
+			menu.AddItem("--", buffer.StringValue, ITEMDRAW_DEFAULT);
+			menu.AddItem("++", "++Timescale",   ITEMDRAW_DEFAULT);
+
+			menu.AddItem("jmp", (this.AutoJump ? "[X] Auto-jump from start zone?" : "[ ] Auto-jump from start zone?"));
+			menu.AddItem("sh", (this.StrafeHack ? "[X] Strafe hack" : "[ ] Strafe Hack"));
+			
+			if(this.StrafeHack)
 			{
-				menu.AddItem("ty", "Type: Normal");
-			}
-			else if(this.Type == XutaxType.Surf)
-			{
-				menu.AddItem("ty", "Type: Surf");
-			}
-			else if(this.Type == XutaxType.Manual)
-			{
-				menu.AddItem("ty", "Type: Manual");
+				if(this.Method == Method.Client)
+				{
+					menu.AddItem("met", "Method: Client");
+				}
+				else if(this.Method == Method.Server)
+				{
+					menu.AddItem("met", "Method: Server");
+				}
+				else if(this.Method == Method.ServerClient)
+				{
+					menu.AddItem("met", "Method: Server + Client");
+				}
+
+				if(this.Type == XutaxType.Normal)
+				{
+					menu.AddItem("ty", "Type: Normal");
+				}
+				else if(this.Type == XutaxType.Surf)
+				{
+					menu.AddItem("ty", "Type: Surf");
+				}
+				else if(this.Type == XutaxType.Manual)
+				{
+					menu.AddItem("ty", "Type: Manual");
+				}
 			}
 		}
-		menu.Pagination = MENU_NO_PAGINATION;
+		else
+		{
+			menu.AddItem("save", "Save Spot");
+			menu.AddItem("tele", "Goto Spot");
+			menu.AddItem("rew", this.Rewind? "[X] Rewind" : "[ ] Rewind");
+			menu.AddItem("for", this.FastForward? "[X] FastForward" : "[ ] FastForward");
+
+			string buffer;
+			buffer.Format("--Edit Speed\nCurrent Speed: %.1f", this.EditSpeed + 0.001);
+			menu.AddItem("--speed", buffer.StringValue);
+			menu.AddItem("++speed", "++Edit Speed");
+
+			buffer.Format("--Timescale\nCurrent Timescale: %.1f", this.TimeScale + 0.001);
+
+			menu.AddItem("--", buffer.StringValue);
+			menu.AddItem("++", "++Timescale");
+
+			menu.AddItem("jmp", (this.AutoJump ? "[X] Auto-jump from start zone?" : "[ ] Auto-jump from start zone?"));
+			menu.AddItem("sh", (this.StrafeHack ? "[X] Strafe hack" : "[ ] Strafe Hack"));
+
+			if(this.StrafeHack)
+			{
+				if(this.Method == Method.Client)
+				{
+					menu.AddItem("met", "Method: Client");
+				}
+				else if(this.Method == Method.Server)
+				{
+					menu.AddItem("met", "Method: Server");
+				}
+				else if(this.Method == Method.ServerClient)
+				{
+					menu.AddItem("met", "Method: Server + Client");
+				}
+
+				if(this.Type == XutaxType.Normal)
+				{
+					menu.AddItem("ty", "Type: Normal");
+				}
+				else if(this.Type == XutaxType.Surf)
+				{
+					menu.AddItem("ty", "Type: Surf");
+				}
+				else if(this.Type == XutaxType.Manual)
+				{
+					menu.AddItem("ty", "Type: Manual");
+				}
+			}
+		}
+
 		menu.ExitButton = true;
 		menu.Display(this, MENU_TIME_FOREVER);
 	}
@@ -764,6 +902,10 @@ methodmap Client < CBasePlayer
 		this.FastWalk = true;
 		this.Method = Method.ServerClient;
 		this.Type = XutaxType.Surf;
+		this.CurrentFrame = 0;
+		this.SavedFrame = 0;
+		_Direction[this] = Direction.None;
+		_UseCheckPoints[this] = -1;
 	}
 
 	public void DoFastWalk(float vel[3])
@@ -804,7 +946,7 @@ methodmap Client < CBasePlayer
 
 		if(mode >= 3 && mode <= 5)
 		{
-			Client result = new Client(view_as<int>(this.GetPropEnt(Prop_Send, "m_hObserverTarget")));
+			Client result = new Client(this.GetPropEnt(Prop_Send, "m_hObserverTarget"));
 
 			if(result.IsValid())
 			{
@@ -816,13 +958,20 @@ methodmap Client < CBasePlayer
 	}
 }
 
+//========================================================================================
+/*                                                                                      *
+ *                            private or out of scope methods                           *
+ *                                                                                      */
+//========================================================================================
+
+
 void ToggleTAS(Client client)
 {
 	if(client.Enabled)
 	{
 		// Keeping this as it's TAS, should honestly have access to everything available
 		Server.Cheats.ReplicateToClient(client, "2");
-		client.OpenMenu();
+		client.OpenTASMenu();
 	}
 	else
 	{
@@ -832,6 +981,161 @@ void ToggleTAS(Client client)
 		Server.Cheats.ReplicateToClient(client, convar.StringValue);
 		Server.HostTimescale.ReplicateToClient(client, "1");
 	}
+}
+
+// TODO: better name
+static stock void OpenTASTypeMenu(Client client)
+{
+	if(!client.Enabled)
+	{
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_TASType);
+
+	menu.SetTitle("Select Your TAS Type\n");
+
+	menu.AddItem("0", "Rewinds/FastForwards");
+	menu.AddItem("1", "Checkpoints");
+
+
+	menu.Pagination = MENU_NO_PAGINATION;
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			Client client = new Client(param1);
+			string_8 info;
+			info.GetMenuInfo(menu, param2);
+
+			if(!client.Enabled)
+			{
+				return 0;
+			}
+
+			if(client.UseCheckpoints)
+			{
+				if (info.Equals("cp"))
+				{
+					FakeClientCommand(client, "sm_cpmenu");
+				}
+				else
+				{
+					if (info.Equals("++"))
+					{
+						client.TimeScale += 0.1;
+					}
+					else if (info.Equals("--"))
+					{
+						client.TimeScale -= 0.1;
+					}
+					else if (info.Equals("jmp"))
+					{
+						client.AutoJump = !client.AutoJump;
+					}
+					else if(info.Equals("sh"))
+					{
+						client.StrafeHack = !client.StrafeHack;
+					}
+					else if(info.Equals("met"))
+					{
+						++client.Method;
+					}
+					else if(info.Equals("ty"))
+					{
+						++client.Type;
+					}
+
+					client.OpenTASMenu();
+				}
+			}
+			else
+			{
+				if (info.Equals("save"))
+				{
+					client.SavedFrame = client.CurrentFrame;
+				}
+				else if (info.Equals("tele"))
+				{
+					// client.CurrentFrame = client.SavedFrame;
+				}
+				else if (info.Equals("rew"))
+				{
+					client.Rewind = !client.Rewind;
+				}
+				else if (info.Equals("for"))
+				{
+					client.FastForward = !client.FastForward;
+				}
+				else if (info.Equals("--speed"))
+				{
+					client.EditSpeed -= 0.1;
+				}
+				else if (info.Equals("++speed"))
+				{
+					client.EditSpeed += 0.1;
+				}
+				else if (info.Equals("++"))
+				{
+					client.TimeScale += 0.1;
+				}
+				else if (info.Equals("--"))
+				{
+					client.TimeScale -= 0.1;
+				}
+				else if (info.Equals("jmp"))
+				{
+					client.AutoJump = !client.AutoJump;
+				}
+				else if(info.Equals("sh"))
+				{
+					client.StrafeHack = !client.StrafeHack;
+				}
+				else if(info.Equals("met"))
+				{
+					++client.Method;
+				}
+				else if(info.Equals("ty"))
+				{
+					++client.Type;
+				}
+			}
+		}
+
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+
+	return 0;
+}
+
+public int MenuHandler_TASType(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			// param2 is the index that we've selected, which should hopefully start at 0. otherwise we'll use the menu info.
+			Client client = new Client(param1);
+			client.UseCheckpoints = !!param2;
+			client.OpenTASMenu();
+		}
+
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+
+	return 0;
 }
 
 enum struct TASFrame
