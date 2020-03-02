@@ -313,10 +313,9 @@ public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float 
 		Server.HostTimescale.ReplicateToClient(client.Index, timescale.StringValue);
 		Server.Cheats.ReplicateToClient(client.Index, "2");
 	}
-	else  */if(!client.IsAlive)
+	else  */
+	if(!client.IsAlive)
 	{
-		client.PrintToConsole("%b %b %b %b %b",
-		target.Valid, target.IsConnected, target.IsInGame, ((!target.IsFakeClient, !target.IsSourceTV)), (target.IsAlive));
 		client.TimeScale = 1.0;
 	}
 }
