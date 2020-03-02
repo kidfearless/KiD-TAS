@@ -85,6 +85,47 @@ enum Client
 	CLIENT_SIZE = MAXPLAYERS
 }
 
+// implicit casting
+stock Client operator=(int value)
+{
+	return view_as<Client>(value);
+}
+
+stock int operator=(Client value)
+{
+	return view_as<int>(value);
+}
+
+stock Client operator++(Client client)
+{
+	return view_as<Client>(view_as<int>(client)++);
+}
+
+stock Client operator--(Client client)
+{
+	return view_as<Client>(view_as<int>(client)--);
+}
+
+stock bool operator<(Client client, int value)
+{
+	return view_as<int>(client) < value;
+}
+
+stock bool operator<=(Client client, int value)
+{
+	return view_as<int>(client) <= value;
+}
+
+stock bool operator==(Client client, int value)
+{
+	return view_as<int>(client) == value;
+}
+
+stock bool operator>=(Client client, int value)
+{
+	return view_as<int>(client) >= value;
+}
+
 methodmap Client < CBasePlayer
 {
 	// constructors
@@ -111,11 +152,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntityMoveType(this.Index);
+			return GetEntityMoveType(this);
 		}
 		public set(MoveType type)
 		{
-			SetEntityMoveType(this.Index, type);
+			SetEntityMoveType(this, type);
 		}
 	}
 
@@ -123,11 +164,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _LastMoveType[this.Index];
+			return _LastMoveType[this];
 		}
 		public set(MoveType type)
 		{
-			_LastMoveType[this.Index] = type;
+			_LastMoveType[this] = type;
 		}
 	}
 
@@ -135,7 +176,7 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return Shavit_GetBhopStyle(this.Index);
+			return Shavit_GetBhopStyle(this);
 		}
 	}
 
@@ -143,7 +184,7 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return Shavit_GetClientTrack(this.Index);
+			return Shavit_GetClientTrack(this);
 		}
 	}
 
@@ -151,7 +192,7 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return Shavit_InsideZone(this.Index, Zone_Start, -1);
+			return Shavit_InsideZone(this, Zone_Start, -1);
 		}
 	}
 
@@ -159,13 +200,13 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _Enabled[this.Index];
+			return _Enabled[this];
 		}
 		public set(bool value)
 		{
-			if(_Enabled[this.Index] != value)
+			if(_Enabled[this] != value)
 			{
-				_Enabled[this.Index] = value;
+				_Enabled[this] = value;
 				ToggleTAS(this);
 			}
 		}
@@ -175,11 +216,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _ForceJump[this.Index];
+			return _ForceJump[this];
 		}
 		public set(bool value)
 		{
-			_ForceJump[this.Index] = value;
+			_ForceJump[this] = value;
 		}
 	}
 
@@ -187,11 +228,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _Buttons[this.Index];
+			return _Buttons[this];
 		}
 		public set(int value)
 		{
-			_Buttons[this.Index] = value;
+			_Buttons[this] = value;
 		}
 	}
 
@@ -199,11 +240,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _NextFrame[this.Index];
+			return _NextFrame[this];
 		}
 		public set(float value)
 		{
-			_NextFrame[this.Index] = value;
+			_NextFrame[this] = value;
 		}
 	}
 
@@ -212,7 +253,7 @@ methodmap Client < CBasePlayer
 		public get()
 		{
 			float vecvelocity[3];
-			GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
+			GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
 			vecvelocity[2] = 0.0;
 			return GetVectorLength(vecvelocity);
 		}
@@ -222,11 +263,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return !!GetEntProp(this.Index, Prop_Send, "m_bDucked");
+			return !!GetEntProp(this, Prop_Send, "m_bDucked");
 		}
 		public set(bool value)
 		{
-			SetEntProp(this.Index, Prop_Send, "m_bDucked", value);
+			SetEntProp(this, Prop_Send, "m_bDucked", value);
 		}
 	}
 
@@ -234,11 +275,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return !!GetEntProp(this.Index, Prop_Send, "m_bDucking");
+			return !!GetEntProp(this, Prop_Send, "m_bDucking");
 		}
 		public set(bool value)
 		{
-			SetEntProp(this.Index, Prop_Send, "m_bDucking", value);
+			SetEntProp(this, Prop_Send, "m_bDucking", value);
 		}
 	}
 
@@ -246,11 +287,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntPropFloat(this.Index, Prop_Send, "m_flStamina");
+			return GetEntPropFloat(this, Prop_Send, "m_flStamina");
 		}
 		public set(float value)
 		{
-			SetEntProp(this.Index, Prop_Send, "m_flStamina", value);
+			SetEntProp(this, Prop_Send, "m_flStamina", value);
 		}
 	}
 
@@ -258,11 +299,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntPropFloat(this.Index, Prop_Send, "m_flDuckSpeed");
+			return GetEntPropFloat(this, Prop_Send, "m_flDuckSpeed");
 		}
 		public set(float value)
 		{
-			SetEntProp(this.Index, Prop_Send, "m_flDuckSpeed", value);
+			SetEntProp(this, Prop_Send, "m_flDuckSpeed", value);
 		}
 	}
 
@@ -272,22 +313,22 @@ methodmap Client < CBasePlayer
 		{
 			if(Server.IsCSS)
 			{
-				GetEntPropFloat(this.Index, Prop_Send, "m_flDucktime");
+				GetEntPropFloat(this, Prop_Send, "m_flDucktime");
 			}
 			else
 			{
-				GetEntPropFloat(this.Index, Prop_Send, "m_flDuckAmount");
+				GetEntPropFloat(this, Prop_Send, "m_flDuckAmount");
 			}
 		}
 		public set(float value)
 		{
 			if(Server.IsCSS)
 			{
-				SetEntPropFloat(this.Index, Prop_Send, "m_flDucktime", value);
+				SetEntPropFloat(this, Prop_Send, "m_flDucktime", value);
 			}
 			else
 			{
-				SetEntPropFloat(this.Index, Prop_Send, "m_flDuckAmount", value);
+				SetEntPropFloat(this, Prop_Send, "m_flDuckAmount", value);
 			}
 		}
 	}
@@ -296,11 +337,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntPropEnt(this.Index, Prop_Send, "m_hGroundEntity");
+			return GetEntPropEnt(this, Prop_Send, "m_hGroundEntity");
 		}
 		public set(int value)
 		{
-			SetEntPropEnt(this.Index, Prop_Data, "m_hGroundEntity", value);
+			SetEntPropEnt(this, Prop_Data, "m_hGroundEntity", value);
 		}
 	}
 
@@ -308,11 +349,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntityFlags(this.Index);
+			return GetEntityFlags(this);
 		}
 		public set(int value)
 		{
-			SetEntityFlags(this.Index, value);
+			SetEntityFlags(this, value);
 		}
 	}
 
@@ -320,48 +361,48 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _Frames[this.Index];
+			return _Frames[this];
 		}
 		public set(ArrayList value)
 		{
-			_Frames[this.Index] = value;
+			_Frames[this] = value;
 		}
 	}
 
 	public void GetVelocity(float vecvelocity[3])
 	{
-		GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
+		GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
 	}
 
 	public void GetBaseVelocity(float vec[3])
 	{
-		GetEntPropVector(this.Index, Prop_Data, "m_vecBaseVelocity", vec);
+		GetEntPropVector(this, Prop_Data, "m_vecBaseVelocity", vec);
 	}
 
 	public void GetTargetName(char[] buffer, int length = 64)
 	{
-		GetEntPropString(this.Index, Prop_Data, "m_iName", buffer, length);
+		GetEntPropString(this, Prop_Data, "m_iName", buffer, length);
 	}
 
 	public void SetTargetName(char[] buffer)
 	{
-		SetEntPropString(this.Index, Prop_Data, "m_iName", buffer);
+		SetEntPropString(this, Prop_Data, "m_iName", buffer);
 	}
 
 	public void GetClassName(char[] buffer, int length = 64)
 	{
-		GetEntityClassname(this.Index, buffer, length);
+		GetEntityClassname(this, buffer, length);
 	}
 	public void SetClassName(char[] buffer)
 	{
-		SetEntPropString(this.Index, Prop_Data, "m_iClassname", buffer);
+		SetEntPropString(this, Prop_Data, "m_iClassname", buffer);
 	}
 
 	property bool OnGround
 	{
 		public get()
 		{
-			return (!(this.Buttons & IN_JUMP) && (GetEntityFlags(this.Index) & FL_ONGROUND));
+			return (!(this.Buttons & IN_JUMP) && (GetEntityFlags(this) & FL_ONGROUND));
 		}
 	}
 
@@ -369,11 +410,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _AutoJump[this.Index];
+			return _AutoJump[this];
 		}
 		public set(bool value)
 		{
-			_AutoJump[this.Index] = value;
+			_AutoJump[this] = value;
 		}
 	}
 
@@ -381,12 +422,12 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _StrafeHack[this.Index];
+			return _StrafeHack[this];
 		}
 		public set(bool value)
 		{
-			_StrafeHack[this.Index] = value;
-			SetXutaxStrafe(this.Index, value);
+			_StrafeHack[this] = value;
+			SetXutaxStrafe(this, value);
 		}
 	}
 
@@ -394,11 +435,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _UseThisFrame[this.Index];
+			return _UseThisFrame[this];
 		}
 		public set(bool value)
 		{
-			_UseThisFrame[this.Index] = value;
+			_UseThisFrame[this] = value;
 		}
 	}
 
@@ -406,11 +447,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _FastWalk[this.Index];
+			return _FastWalk[this];
 		}
 		public set(bool value)
 		{
-			_FastWalk[this.Index] = value;
+			_FastWalk[this] = value;
 		}
 	}
 
@@ -418,11 +459,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntPropFloat(this.Index, Prop_Data, "m_flLaggedMovementValue");
+			return GetEntPropFloat(this, Prop_Data, "m_flLaggedMovementValue");
 		}
 		public set(float value)
 		{
-			SetEntPropFloat(this.Index, Prop_Data, "m_flLaggedMovementValue", value);
+			SetEntPropFloat(this, Prop_Data, "m_flLaggedMovementValue", value);
 		}
 	}
 
@@ -430,7 +471,7 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _Method[this.Index];
+			return _Method[this];
 		}
 		public set(int value)
 		{
@@ -442,24 +483,24 @@ methodmap Client < CBasePlayer
 				value %= Method.Size;
 			}
 
-			if(value != _Method[this.Index])
+			if(value != _Method[this])
 			{
 				if(value == Method.Server)
 				{
-					Server.HostTimescale.ReplicateToClient(this.Index, "1");
+					Server.HostTimescale.ReplicateToClient(this, "1");
 				}
 				else
 				{
-					Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
+					Shavit_SetClientTimescale(this, _TimeScale[this]);
 					this.LaggedMovementValue = 1.0;
 					if(value == Method.Client || value == Method.ServerClient)
 					{
 						string sValue;
-						sValue.FromFloat(_TimeScale[this.Index]);
-						Server.HostTimescale.ReplicateToClient(this.Index, sValue.StringValue);
+						sValue.FromFloat(_TimeScale[this]);
+						Server.HostTimescale.ReplicateToClient(this, sValue.StringValue);
 					}
 				}
-				_Method[this.Index] = value;
+				_Method[this] = value;
 			}
 		}
 	}
@@ -468,31 +509,31 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _TimeScale[this.Index];
+			return _TimeScale[this];
 		}
 		public set(float value)
 		{
 			if(value < 0.1)
 			{
-				_TimeScale[this.Index] = 0.1;
+				_TimeScale[this] = 0.1;
 			}
 			else if(value > 1.0)
 			{
-				_TimeScale[this.Index] = 1.0;
+				_TimeScale[this] = 1.0;
 			}
 			else
 			{
-				_TimeScale[this.Index] = value;
+				_TimeScale[this] = value;
 			}
 
 
-			Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
+			Shavit_SetClientTimescale(this, _TimeScale[this]);
 			this.LaggedMovementValue = 1.0;
 			if(this.Method == Method.Client || this.Method == Method.ServerClient)
 			{
 				string sValue;
-				sValue.FromFloat(_TimeScale[this.Index]);
-				Server.HostTimescale.ReplicateToClient(this.Index, sValue.StringValue);
+				sValue.FromFloat(_TimeScale[this]);
+				Server.HostTimescale.ReplicateToClient(this, sValue.StringValue);
 			}
 		}
 	}
@@ -501,16 +542,16 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _XutaxType[this.Index];
+			return _XutaxType[this];
 		}
 		public set(int value)
 		{
 			value %= XutaxType.Size;
 
-			if(value != _XutaxType[this.Index])
+			if(value != _XutaxType[this])
 			{
-				SetXutaxType(this.Index, value);
-				_XutaxType[this.Index] = value;
+				SetXutaxType(this, value);
+				_XutaxType[this] = value;
 			}
 		}
 	}
@@ -531,26 +572,26 @@ methodmap Client < CBasePlayer
 
 	public int GetProp( PropType propType, const char[] propName, int size = 4, int element = 0 )
 	{
-		return GetEntProp( this.Index, propType, propName, size, element );
+		return GetEntProp( this, propType, propName, size, element );
 	}
 
 	public int GetPropEnt( PropType propType, const char[] propName, int element = 0 )
 	{
-		return GetEntPropEnt( this.Index, propType, propName, element );
+		return GetEntPropEnt( this, propType, propName, element );
 	}
 
 	public void PrintToConsole(const char[] format, any ...)
 	{
 		string buffer;
 		VFormat(buffer.StringValue, buffer.Size(), format, 3);
-		PrintToConsole(this.Index, buffer.StringValue);
+		PrintToConsole(this, buffer.StringValue);
 	}
 
 	public void ReplyToCommand(const char[] format, any ...)
 	{
 		string buffer;
 		VFormat(buffer.StringValue, buffer.Size(), format, 3);
-		ReplyToCommand(this.Index, buffer.StringValue);
+		ReplyToCommand(this, buffer.StringValue);
 	}
 
 	public void OpenMenu()
@@ -612,14 +653,14 @@ methodmap Client < CBasePlayer
 		}
 		menu.Pagination = MENU_NO_PAGINATION;
 		menu.ExitButton = true;
-		menu.Display(this.Index, MENU_TIME_FOREVER);
+		menu.Display(this, MENU_TIME_FOREVER);
 	}
 
 	public void ResetVariables()
 	{
 		this.TimeScale = 1.0;
 		this.Enabled = false;
-		_StrafeHack[this.Index] = true;
+		_StrafeHack[this] = true;
 		this.FastWalk = true;
 		this.Method = Method.ServerClient;
 		this.Type = XutaxType.Surf;
@@ -627,14 +668,14 @@ methodmap Client < CBasePlayer
 
 	public void DoFastWalk(float vel[3])
 	{
-		bool direction = _FastWalkDirection[this.Index];
+		bool direction = _FastWalkDirection[this];
 
 		if(this.Buttons & IN_FORWARD && !(this.Buttons & (IN_MOVELEFT | IN_MOVERIGHT)))
 		{
 			vel[1] = direction ? PERFSPEEDHACK : -PERFSPEEDHACK;
 		}
 
-		_FastWalkDirection[this.Index] = !direction;
+		_FastWalkDirection[this] = !direction;
 	}
 
 	public void DoAutoJump(int& buttons)
@@ -832,31 +873,6 @@ enum struct TASFrame
 		// Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, index, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 		
 	}
-}
-
-stock Client operator++(Client client)
-{
-	return view_as<Client>(view_as<int>(client)++);
-}
-
-stock bool operator<(Client client, int value)
-{
-	return view_as<int>(client) < value;
-}
-
-stock bool operator<=(Client client, int value)
-{
-	return view_as<int>(client) <= value;
-}
-
-stock bool operator==(Client client, int value)
-{
-	return view_as<int>(client) == value;
-}
-
-stock bool operator>=(Client client, int value)
-{
-	return view_as<int>(client) >= value;
 }
 
 #define DEBUG 0

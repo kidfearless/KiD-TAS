@@ -160,8 +160,8 @@ public void OnPluginEnd()
 		{
 			string_8 convar;
 			convar.FromInt(Server.GetDefaultCheats());
-			Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
-			Server.HostTimescale.ReplicateToClient(client.Index, "1");
+			Server.Cheats.ReplicateToClient(client, convar.StringValue);
+			Server.HostTimescale.ReplicateToClient(client, "1");
 		}
 	}
 }
@@ -231,7 +231,7 @@ public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float 
 
 	if(!client.InStartZone)
 	{
-		TasFrame frame;
+		TASFrame frame;
 		frame.Update(client);
 		client.Frames.PushArray(frame);		
 	}
@@ -287,8 +287,7 @@ public void OnPostThink(int index)
 
 public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 {
-	int index = DHookGetParam(hParams, 1);
-	Client client = new Client(index);
+	Client client = DHookGetParam(hParams, 1);
 	if(!client.Enabled || client.Method == Method.Client)
 	{
 		client.ProcessFrame = true;
@@ -315,8 +314,7 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 
 public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 {
-	int index = DHookGetParam(hParams, 1);
-	Client client = new Client(index);
+	Client client = DHookGetParam(hParams, 1);
 
 	if(client.Enabled && client.Method != Method.Client)
 	{
@@ -347,7 +345,7 @@ public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 
 			if (info.Equals("cp"))
 			{
-				FakeClientCommand(client.Index, "sm_cpmenu");
+				FakeClientCommand(client, "sm_cpmenu");
 			}
 			else
 			{
