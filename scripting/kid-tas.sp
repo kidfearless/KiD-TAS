@@ -314,7 +314,7 @@ public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float 
 		Server.Cheats.ReplicateToClient(client.Index, "2");
 	}
 	else  */
-	if(!client.IsAlive)
+	if(client.Enabled && !client.IsAlive)
 	{
 		client.TimeScale = 1.0;
 	}
