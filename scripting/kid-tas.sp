@@ -289,6 +289,15 @@ public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float v
 	return Plugin_Continue;
 }
 
+public void Shavit_OnTimeIncrement(int index, timer_snapshot_t snapshot, float &time, stylesettings_t stylesettings)
+{
+	Client client = new Client(index);
+	if(Server.IsCSS && client.Method == Method.Client)
+	{
+		time *= client.TimeScale;
+	}
+}
+
 public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
 {
 	// create a Client from the player they are spectating
@@ -301,19 +310,7 @@ public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float 
 		// client.PrintToConsole("invalid");
 		return;
 	}
-/* 
-	Client target = client.GetHUDTarget();
 
-	// GetHUDTarget checks for being a spectator. 
-	if(target.IsValid() && target.Enabled)
-	{
-		string_32 timescale;
-		timescale.FromFloat(target.TimeScale);
-		client.PrintToConsole("valid target: %f", target.TimeScale);
-		Server.HostTimescale.ReplicateToClient(client.Index, timescale.StringValue);
-		Server.Cheats.ReplicateToClient(client.Index, "2");
-	}
-	else  */
 	if(client.Enabled && !client.IsAlive)
 	{
 		client.TimeScale = 1.0;

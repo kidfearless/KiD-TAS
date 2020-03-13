@@ -308,15 +308,24 @@ methodmap Client < CBasePlayer
 				}
 				else
 				{
-					Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
-					this.LaggedMovementValue = 1.0;
-					if(value == Method.Client || value == Method.ServerClient)
+					if(Server.IsCSS)
 					{
-						string sValue;
-						sValue.FromFloat(_TimeScale[this.Index]);
-						Server.HostTimescale.ReplicateToClient(this.Index, sValue.StringValue);
+						if(Shavit_GetClientTimescale(this.Index) >= 0.0)
+						{
+							Shavit_SetClientTimescale(this.Index, -1.0);
+						}
 					}
+					else
+					{
+						Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
+						this.LaggedMovementValue = 1.0;
+					}
+
+					string sValue;
+					sValue.FromFloat(_TimeScale[this.Index]);
+					Server.HostTimescale.ReplicateToClient(this.Index, sValue.StringValue);
 				}
+				
 				_Method[this.Index] = value;
 			}
 		}
@@ -342,10 +351,12 @@ methodmap Client < CBasePlayer
 			{
 				_TimeScale[this.Index] = value;
 			}
-
-
-			Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
-			this.LaggedMovementValue = 1.0;
+			// css client just sends the frames at the right rate
+			if(!(Server.IsCSS && this.Method == Method.Client))
+			{
+				Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
+				this.LaggedMovementValue = 1.0;
+			}
 			if(this.Method == Method.Client || this.Method == Method.ServerClient)
 			{
 				string sValue;
