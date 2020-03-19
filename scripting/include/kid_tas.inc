@@ -486,6 +486,11 @@ methodmap Client < CBasePlayer
 
 	public void ResetVariables()
 	{
+		if(!this.IsFakeClient)
+		{
+			return;
+		}
+		
 		this.TimeScale = 1.0;
 		this.Enabled = false;
 		_StrafeHack[this.Index] = true;
