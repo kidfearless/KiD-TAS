@@ -431,7 +431,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
 			if(!(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
 			{
-				PrintToConsole(client, "offset: %i friction: %f finding", g_iSurfaceFrictionOffset, flSurfaceFriction);
 				FindNewFrictionOffset(client);
 			}
 		}
