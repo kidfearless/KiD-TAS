@@ -13,8 +13,7 @@
 float g_flAirSpeedCap = 30.0;
 float g_flOldYawAngle[MAXPLAYERS + 1];
 ConVar g_ConVar_sv_airaccelerate;
-// css linux offset as of february 8th, 2020
-int g_iSurfaceFrictionOffset = 3852;
+int g_iSurfaceFrictionOffset;
 float g_fMaxMove = 400.0;
 EngineVersion g_Game;
 bool g_bEnabled[MAXPLAYERS + 1];
@@ -42,23 +41,33 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	g_Game = GetEngineVersion();
+	g_ConVar_sv_airaccelerate = FindConVar("sv_airaccelerate");
+
+	GameData gamedata = new GameData("KiD-TAS.games");
 	
-	if(g_Game != Engine_CSGO && g_Game != Engine_CSS)
+	g_iSurfaceFrictionOffset = gamedata.GetOffset("m_surfaceFriction");
+	delete gamedata;
+	
+	if(g_iSurfaceFrictionOffset <= 0)
 	{
-		SetFailState("This plugin is for CSGO/CSS only.");	
+		LogError("[XUTAX] Invalid offset supplied, defaulting friction values");
 	}
-	
 	if(g_Game == Engine_CSGO)
 	{
+		// g_cFrictionOffset = new Convar("xutax_friction_offset", "4680", "Surface friction offset");
 		g_fMaxMove = 450.0;
 		ConVar sv_air_max_wishspeed = FindConVar("sv_air_max_wishspeed");
 		sv_air_max_wishspeed.AddChangeHook(OnWishSpeedChanged);
 		g_flAirSpeedCap = sv_air_max_wishspeed.FloatValue;
-		// csgo linux offset as of february 8th, 2020
-		g_iSurfaceFrictionOffset = 0x124C;
 	}
-
-	g_ConVar_sv_airaccelerate = FindConVar("sv_airaccelerate");
+	else if(g_Game == Engine_CSS)
+	{
+		// saved for later use
+	}
+	else
+	{
+		SetFailState("This plugin is for CSGO/CSS only.");	
+	}
 }
 
 // doesn't exist in css so we have to cache the value
@@ -416,8 +425,17 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 		float flFowardMove, flSideMove;
 		float flMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
-		float flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
-		// float flSurfaceFriction = 1.0;
+		float flSurfaceFriction = 1.0;
+		if(g_iSurfaceFrictionOffset > 0)
+		{
+			flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
+			if(!(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
+			{
+				PrintToConsole(client, "offset: %i friction: %f finding", g_iSurfaceFrictionOffset, flSurfaceFriction);
+				FindNewFrictionOffset(client);
+			}
+		}
+		
 		float flFrametime = GetTickInterval();
 		
 		float flVelocity[3], flVelocity2D[2];
@@ -470,8 +488,22 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	return Plugin_Continue;
 }
 
-// natives
+void FindNewFrictionOffset(int client)
+{
+	for(int i = 1; i <= 128; ++i)
+	{
+		float friction = GetEntDataFloat(client, g_iSurfaceFrictionOffset + i);
+		if(friction == 0.25 || friction == 1.0)
+		{
+			g_iSurfaceFrictionOffset += i;
 
+			LogError("[XUTAX] Current offset is out of date. Please update to new offset: %i", g_iSurfaceFrictionOffset);
+			break;
+		}
+	}
+}
+
+// natives
 public any Native_SetAutostrafe(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
