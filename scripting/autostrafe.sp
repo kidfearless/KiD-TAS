@@ -6,7 +6,7 @@
 #include <sdktools>
 #include <cstrike>
 #include <xutaxstrafe>
-// #include <sdkhooks>
+#include <kid_tas_api>
 
 #pragma newdecls required
 
@@ -398,6 +398,12 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	{
 		return Plugin_Continue;
 	}
+	
+	if(!ShouldProcessFrame(client))
+	{
+		return Plugin_Continue;
+	}
+
 
 	bool bOnGround = !(buttons & IN_JUMP) && (GetEntityFlags(client) & FL_ONGROUND);
 
@@ -449,11 +455,13 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		GetIdealMovementsInAir(angles[1], flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, flFowardMove, flSideMove);
 		
 		float flAngleDifference = AngleNormalize(angles[1] - g_flOldYawAngle[client]);
+
+		float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, true, false);
 		
 		// Right
 		if (flAngleDifference < 0.0)
 		{
-			if (FloatAbs(flAngleDifference) < GetMaxDeltaInAir(flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, true, false))
+			if (FloatAbs(flAngleDifference) < flMaxDelta)
 			{					
 				vel[0] = flFowardMove * g_fMaxMove;
 				vel[1] = flSideMove * g_fMaxMove;
@@ -465,7 +473,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		}
 		else if (flAngleDifference > 0.0)
 		{
-			if (FloatAbs(flAngleDifference) < GetMaxDeltaInAir(flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, false, true))
+			if (FloatAbs(flAngleDifference) < flMaxDelta)
 			{
 				vel[0] = flFowardMove * g_fMaxMove;
 				vel[1] = flSideMove * g_fMaxMove;
@@ -571,6 +579,16 @@ stock bool IsSurfing(int client)
 public bool TRFilter_NoPlayers(int entity, int mask, any data)
 {
 	return (entity != view_as<int>(data) || (entity < 1 || entity > MaxClients));
+}
+
+stock bool ShouldProcessFrame(int client)
+{
+	if(GetFeatureStatus(FeatureType_Native, "TAS_ShouldProcessFrame") == FeatureStatus_Available)
+	{
+		return TAS_Enabled(client) && TAS_ShouldProcessFrame(client);
+	}
+
+	return true;
 }
 
 
