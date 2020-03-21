@@ -6,6 +6,7 @@
 !scripting/include/string_test.inc
 !scripting/include/strings_include.inc
 !scripting/include/kid_tas.inc
+!scripting/include/kid_tas_api.inc
 !scripting/include/xutaxstrafe.inc
 !scripting/include/convar_class.inc
 !scripting/include/shavit.inc

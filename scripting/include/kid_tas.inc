@@ -549,7 +549,7 @@ methodmap Client < CBasePlayer
 	}
 }
 
-void ToggleTAS(Client client)
+stock void ToggleTAS(Client client)
 {
 	if(client.Enabled)
 	{
@@ -569,7 +569,7 @@ void ToggleTAS(Client client)
 
 #define DEBUG 0
 #if DEBUG == 1
-void DebugPrint(const char[] format, any args ...)
+stock void DebugPrint(const char[] format, any args ...)
 {
 	string buffer;
 	VFormat(buffer.StringValue, buffer.Size(), format, 2);
@@ -577,21 +577,3 @@ void DebugPrint(const char[] format, any args ...)
 }
 #endif
 
-native bool TAS_ShouldProcessFrame(int client);
-
-public SharedPlugin __pl_kid_tas =
-{
-	name = "kid-tas",
-#if defined REQUIRE_PLUGIN
-	required = 0
-#else
-	required = 0
-#endif
-};
-
-#if !defined REQUIRE_PLUGIN
-public void __pl_kid_tas_SetNTVOptional()
-{
-	MarkNativeAsOptional("TAS_ShouldProcessFrame");
-}
-#endif

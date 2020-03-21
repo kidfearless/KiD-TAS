@@ -13,6 +13,7 @@
 #include <convar_class>
 #include <thelpers/thelpers>
 #include <xutaxstrafe>
+#include <kid_tas_api>
 
 public Plugin myinfo = 
 {
@@ -129,6 +130,8 @@ ServerMap Server;
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	CreateNative("TAS_ShouldProcessFrame", Native_ShouldProcess);
+	CreateNative("TAS_GetCurrentTimescale", Native_GetCurrentTimescale);
+	CreateNative("TAS_Enabled", Native_Enabled);
 
 	Server.IsLate = late;
 	return APLRes_Success;
@@ -507,6 +510,16 @@ public Action Command_TimeScale(int index, int args)
 public any Native_ShouldProcess(Handle time, int numParams)
 {
 	return Client.Create(GetNativeCell(1)).ProcessFrame;
+}
+
+public any Native_GetCurrentTimescale(Handle time, int numParams)
+{
+	return Client.Create(GetNativeCell(1)).TimeScale;
+}
+
+public any Native_Enabled(Handle time, int numParams)
+{
+	return Client.Create(GetNativeCell(1)).Enabled;
 }
 
 //========================================================================================
