@@ -32,51 +32,11 @@ static bool _AutoJump[MAXPLAYERS+1] = {true, ...};
 static bool _ForceJump[MAXPLAYERS+1];
 static bool _FastWalkDirection[MAXPLAYERS+1];
 static int _Buttons[MAXPLAYERS+1];
-static int _Method[MAXPLAYERS+1];
+static stock int _Method[MAXPLAYERS+1];
 static float _NextFrame[MAXPLAYERS+1];
 static bool _UseThisFrame[MAXPLAYERS+1];
 static MoveType _LastMoveType[MAXPLAYERS+1];
 static int _XutaxType[MAXPLAYERS+1];
-
-methodmap MethodMap
-{
-	property int Client
-	{
-		public get()
-		{
-			return 0;
-		}
-	}
-	property int None
-	{
-		public get()
-		{
-			return -1;
-		}
-	}
-	property int Server
-	{
-		public get()
-		{
-			return 1;
-		}
-	}
-	property int ServerClient
-	{
-		public get()
-		{
-			return 2;
-		}
-	}
-	property int Size
-	{
-		public get()
-		{
-			return 3;
-		}
-	}
-}
-MethodMap Method;
 
 enum Client
 {
@@ -284,53 +244,6 @@ methodmap Client < CBasePlayer
 		}
 	}
 
-	property int Method
-	{
-		public get()
-		{
-			return _Method[this.Index];
-		}
-		public set(int value)
-		{
-			value %= Method.Size;
-			if(Server.IsCSGO && value == Method.Client
-			|| Server.IsCSS && value == Method.ServerClient)
-			{
-				++value;
-				value %= Method.Size;
-			}
-
-			if(value != _Method[this.Index])
-			{
-				if(value == Method.Server)
-				{
-					Server.HostTimescale.ReplicateToClient(this.Index, "1");
-				}
-				else
-				{
-					if(Server.IsCSS)
-					{
-						if(Shavit_GetClientTimescale(this.Index) >= 0.0)
-						{
-							Shavit_SetClientTimescale(this.Index, -1.0);
-						}
-					}
-					else
-					{
-						Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
-						this.LaggedMovementValue = 1.0;
-					}
-
-					string sValue;
-					sValue.FromFloat(_TimeScale[this.Index]);
-					Server.HostTimescale.ReplicateToClient(this.Index, sValue.StringValue);
-				}
-				
-				_Method[this.Index] = value;
-			}
-		}
-	}
-
 	property float TimeScale
 	{
 		public get()
@@ -351,18 +264,9 @@ methodmap Client < CBasePlayer
 			{
 				_TimeScale[this.Index] = value;
 			}
-			// css client just sends the frames at the right rate
-			if(!(Server.IsCSS && this.Method == Method.Client))
-			{
-				Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
-				this.LaggedMovementValue = 1.0;
-			}
-			if(this.Method == Method.Client || this.Method == Method.ServerClient)
-			{
-				string sValue;
-				sValue.FromFloat(_TimeScale[this.Index]);
-				Server.HostTimescale.ReplicateToClient(this.Index, sValue.StringValue);
-			}
+
+			Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
+			this.LaggedMovementValue = 1.0;
 		}
 	}
 
@@ -453,19 +357,6 @@ methodmap Client < CBasePlayer
 		
 		if(this.StrafeHack)
 		{
-			if(this.Method == Method.Client)
-			{
-				menu.AddItem("met", "Method: Client");
-			}
-			else if(this.Method == Method.Server)
-			{
-				menu.AddItem("met", "Method: Server");
-			}
-			else if(this.Method == Method.ServerClient)
-			{
-				menu.AddItem("met", "Method: Server + Client");
-			}
-
 			if(this.Type == XutaxType.Normal)
 			{
 				menu.AddItem("ty", "Type: Normal");
@@ -479,6 +370,7 @@ methodmap Client < CBasePlayer
 				menu.AddItem("ty", "Type: Manual");
 			}
 		}
+		
 		menu.Pagination = MENU_NO_PAGINATION;
 		menu.ExitButton = true;
 		menu.Display(this.Index, MENU_TIME_FOREVER);
@@ -495,7 +387,6 @@ methodmap Client < CBasePlayer
 		this.Enabled = false;
 		_StrafeHack[this.Index] = true;
 		this.FastWalk = true;
-		this.Method = Method.ServerClient;
 		this.Type = XutaxType.Surf;
 	}
 

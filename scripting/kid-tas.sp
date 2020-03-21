@@ -3,6 +3,17 @@
 #endif
 #define __tas_included
 
+/* 
+	Due to issues with host_timescale on csgo and css it will no longer be an option.
+	CSGO:	Voice comms become distorted
+	CSS:	Extra frames are processed in the replay files(possibly csgo too)
+	BOTH: 	Is dependent on the client being honest and not changing the timescale themselves.
+
+	To use the host_timescale method the server must have sv_maxusrcmdprocessticks 0.
+	This will disable the speed hack prevention on the server and allow clients to 
+	Send less than the servers tickrate in frames.
+*/
+
 #include <sourcemod>
 #include <sdkhooks>
 #include <shavit>
@@ -238,7 +249,7 @@ public void OnPluginEnd()
 	for(int i = 1; i <= MaxClients; ++i)
 	{
 		Client client = new Client(i);
-		if(client.Enabled)
+		if(client.Enabled && client.IsConnected)
 		{
 			string_8 convar;
 			convar.FromInt(Server.GetDefaultCheats());
@@ -294,11 +305,6 @@ public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float v
 
 public void Shavit_OnTimeIncrement(int index, timer_snapshot_t snapshot, float &time, stylesettings_t stylesettings)
 {
-	Client client = new Client(index);
-	if(Server.IsCSS && client.Method == Method.Client)
-	{
-		time *= client.TimeScale;
-	}
 }
 
 public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
@@ -366,7 +372,7 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 {
 	int index = DHookGetParam(hParams, 1);
 	Client client = new Client(index);
-	if(!client.Enabled || client.Method == Method.Client)
+	if(!client.Enabled)
 	{
 		client.ProcessFrame = true;
 		return MRES_Ignored;
@@ -377,7 +383,7 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 		client.NextFrameTime += (1.0 - client.TimeScale);
 		client.LastMoveType = client.Movetype;
 		client.ProcessFrame = (client.NextFrameTime <= 0.0);
-
+		client.LaggedMovementValue = 1.0;
 		return MRES_Ignored;
 	}
 	else
@@ -395,9 +401,10 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	int index = DHookGetParam(hParams, 1);
 	Client client = new Client(index);
 
-	if(client.Enabled && client.Method != Method.Client)
+	if(client.Enabled)
 	{
 		client.Movetype = client.LastMoveType;
+		client.LaggedMovementValue = client.TimeScale;
 	}
 }
 
@@ -443,10 +450,6 @@ public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 				else if(info.Equals("sh"))
 				{
 					client.StrafeHack = !client.StrafeHack;
-				}
-				else if(info.Equals("met"))
-				{
-					++client.Method;
 				}
 				else if(info.Equals("ty"))
 				{
