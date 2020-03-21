@@ -1,4 +1,7 @@
-
+#if defined _kid_tas_api_included
+	#endinput
+#endif
+#define _kid_tas_api_included
 
 /**
  * @brief Returns whether or not the current usercmd will be processed.
