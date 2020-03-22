@@ -151,10 +151,16 @@ void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRig
 	float f = vecRight[1];
 	
 	float flDivide = (c * e - a * f);
-	
-	flForwardMove = (c * w - f * v) / flDivide;
-	flSideMove = (e * v - a * w) / flDivide;
-	
+	if(flDivide == 0.0)
+	{
+		flForwardMove = g_fMaxMove;
+		flSideMove = 0.0;
+	}
+	else
+	{
+		flForwardMove = (c * w - f * v) / flDivide;
+		flSideMove = (e * v - a * w) / flDivide;
+	}
 }
 
 float GetThetaAngleInAir(float flVelocity[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime)
@@ -179,7 +185,10 @@ float GetThetaAngleInAir(float flVelocity[2], float flAirAccelerate, float flMax
 	if (flWantedDotProduct > 0.0)
 	{
 		float flVelLength2D = SquareRoot(flVelocity[0] * flVelocity[0] + flVelocity[1] * flVelocity[1]);
-		
+		if(flVelLength2D == 0.0)
+		{
+			return 90.0;
+		}
 		float flCosTheta = flWantedDotProduct / flVelLength2D;
 		
 		if (flCosTheta > 1.0)
@@ -393,8 +402,11 @@ void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], float flA
 	
 	float flLengthMovements = SquareRoot(flForwardMove * flForwardMove + flSideMove * flSideMove);
 
-	flForwardMove /= flLengthMovements;
-	flSideMove /= flLengthMovements;
+	if(flLengthMovements != 0.0)
+	{
+		flForwardMove /= flLengthMovements;
+		flSideMove /= flLengthMovements;
+	}
 }
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
@@ -409,8 +421,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		return Plugin_Continue;
 	}
 
-
-	bool bOnGround = !(buttons & IN_JUMP) && (GetEntityFlags(client) & FL_ONGROUND);
+	bool bOnGround = !(buttons & IN_JUMP) && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
 
 	if (IsPlayerAlive(client) 
 		&& !bOnGround
@@ -440,7 +451,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		if(g_iSurfaceFrictionOffset > 0)
 		{
 			flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
-			if(!(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
 			if(g_ConVar_AutoFind_Offset.BoolValue && !(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
 			{
 				FindNewFrictionOffset(client);
