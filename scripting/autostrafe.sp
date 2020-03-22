@@ -7,6 +7,7 @@
 #include <cstrike>
 #include <xutaxstrafe>
 #include <kid_tas_api>
+#include <convar_class>
 
 #pragma newdecls required
 
@@ -18,6 +19,7 @@ float g_fMaxMove = 400.0;
 EngineVersion g_Game;
 bool g_bEnabled[MAXPLAYERS + 1];
 int g_iType[MAXPLAYERS + 1];
+Convar g_ConVar_AutoFind_Offset;
 
 
 public Plugin myinfo = 
@@ -68,6 +70,9 @@ public void OnPluginStart()
 	{
 		SetFailState("This plugin is for CSGO/CSS only.");	
 	}
+	g_ConVar_AutoFind_Offset = new Convar("xutax_find_offsets", "1", "Attempt to autofind offsets", _, true, 0.0, true, 1.0);
+
+	Convar.AutoExecConfig();
 }
 
 // doesn't exist in css so we have to cache the value
@@ -436,6 +441,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		{
 			flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
 			if(!(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
+			if(g_ConVar_AutoFind_Offset.BoolValue && !(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
 			{
 				FindNewFrictionOffset(client);
 			}
