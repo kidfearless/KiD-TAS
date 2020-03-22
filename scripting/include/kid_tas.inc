@@ -26,7 +26,6 @@ TODO: TAS will be considered done when all of these things have been completed
 static bool _Enabled[MAXPLAYERS+1];
 // static float _LastGain[MAXPLAYERS+1];
 static float _TimeScale[MAXPLAYERS+1] = {1.0, ...};
-static bool _StrafeHack[MAXPLAYERS+1] = {true, ...};
 static bool _FastWalk[MAXPLAYERS+1] = {true, ...};
 static bool _AutoJump[MAXPLAYERS+1] = {true, ...};
 static bool _ForceJump[MAXPLAYERS+1];
@@ -65,6 +64,44 @@ methodmap Client < CBasePlayer
 		{
 			return view_as<int>(this);
 		}
+	}
+
+		property bool Valid
+	{
+		public get()
+		{
+			return (this > SERVER_CLIENT && this < CLIENT_SIZE);
+		}
+	}
+
+	public bool IsValid(bool checkIfAlive = false, bool checkIfBot = true)
+	{
+		// checks for valid index, if they are connected and in game, with options for checking bots and alive
+		return this.Valid && this.IsConnected && this.IsInGame && (!checkIfBot || (!this.IsFakeClient && !this.IsSourceTV)) && (!checkIfAlive || this.IsAlive);
+	}
+
+	public int GetProp( PropType propType, const char[] propName, int size = 4, int element = 0 )
+	{
+		return GetEntProp( this.Index, propType, propName, size, element );
+	}
+
+	public int GetPropEnt( PropType propType, const char[] propName, int element = 0 )
+	{
+		return GetEntPropEnt( this.Index, propType, propName, element );
+	}
+
+	public void PrintToConsole(const char[] format, any ...)
+	{
+		string buffer;
+		VFormat(buffer.StringValue, buffer.Size(), format, 3);
+		PrintToConsole(this.Index, buffer.StringValue);
+	}
+
+	public void ReplyToCommand(const char[] format, any ...)
+	{
+		string buffer;
+		VFormat(buffer.StringValue, buffer.Size(), format, 3);
+		ReplyToCommand(this.Index, buffer.StringValue);
 	}
 
 	property MoveType Movetype
@@ -175,11 +212,19 @@ methodmap Client < CBasePlayer
 		GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
 	}
 
+	property int GroundEntity
+	{
+		public get()
+		{
+			this.GetPropEnt(Prop_Send, "m_hGroundEntity");
+		}
+	}
+
 	property bool OnGround
 	{
 		public get()
 		{
-			return (!(this.Buttons & IN_JUMP) && (GetEntityFlags(this.Index) & FL_ONGROUND));
+			return (!(this.Buttons & IN_JUMP) && (this.GroundEntity != -1));
 		}
 	}
 
@@ -199,11 +244,10 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _StrafeHack[this.Index];
+			return GetXutaxStrafe(this.Index);
 		}
 		public set(bool value)
 		{
-			_StrafeHack[this.Index] = value;
 			SetXutaxStrafe(this.Index, value);
 		}
 	}
@@ -288,44 +332,6 @@ methodmap Client < CBasePlayer
 		}
 	}
 
-	property bool Valid
-	{
-		public get()
-		{
-			return (this > SERVER_CLIENT && this < CLIENT_SIZE);
-		}
-	}
-
-	public bool IsValid(bool checkIfAlive = false, bool checkIfBot = true)
-	{
-		// checks for valid index, if they are connected and in game, with options for checking bots and alive
-		return this.Valid && this.IsConnected && this.IsInGame && (!checkIfBot || (!this.IsFakeClient && !this.IsSourceTV)) && (!checkIfAlive || this.IsAlive);
-	}
-
-	public int GetProp( PropType propType, const char[] propName, int size = 4, int element = 0 )
-	{
-		return GetEntProp( this.Index, propType, propName, size, element );
-	}
-
-	public int GetPropEnt( PropType propType, const char[] propName, int element = 0 )
-	{
-		return GetEntPropEnt( this.Index, propType, propName, element );
-	}
-
-	public void PrintToConsole(const char[] format, any ...)
-	{
-		string buffer;
-		VFormat(buffer.StringValue, buffer.Size(), format, 3);
-		PrintToConsole(this.Index, buffer.StringValue);
-	}
-
-	public void ReplyToCommand(const char[] format, any ...)
-	{
-		string buffer;
-		VFormat(buffer.StringValue, buffer.Size(), format, 3);
-		ReplyToCommand(this.Index, buffer.StringValue);
-	}
-
 	public void OpenMenu()
 	{
 		if(!this.Enabled)
@@ -385,7 +391,6 @@ methodmap Client < CBasePlayer
 
 		this.TimeScale = 1.0;
 		this.Enabled = false;
-		_StrafeHack[this.Index] = true;
 		this.FastWalk = true;
 		this.Type = XutaxType.Surf;
 	}
@@ -409,6 +414,7 @@ methodmap Client < CBasePlayer
 			if(this.OnGround)
 			{
 				buttons |= IN_JUMP;
+				this.ForceJump = false;
 			}
 			else
 			{
