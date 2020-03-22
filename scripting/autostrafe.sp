@@ -456,12 +456,11 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		
 		float flAngleDifference = AngleNormalize(angles[1] - g_flOldYawAngle[client]);
 
-		float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, true, false);
 		
 		// Right
 		if (flAngleDifference < 0.0)
 		{
-			if (FloatAbs(flAngleDifference) < flMaxDelta)
+			if (FloatAbs(flAngleDifference) < GetMaxDeltaInAir(flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, true, false))
 			{					
 				vel[0] = flFowardMove * g_fMaxMove;
 				vel[1] = flSideMove * g_fMaxMove;
@@ -473,7 +472,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		}
 		else if (flAngleDifference > 0.0)
 		{
-			if (FloatAbs(flAngleDifference) < flMaxDelta)
+			if (FloatAbs(flAngleDifference) < GetMaxDeltaInAir(flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, false, true))
 			{
 				vel[0] = flFowardMove * g_fMaxMove;
 				vel[1] = flSideMove * g_fMaxMove;
