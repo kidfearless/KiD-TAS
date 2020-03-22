@@ -50,3 +50,22 @@ native void SetXutaxType(int client, int value);
  * @return				The current strafehack type.
  */
 native int GetXutaxType(int client);
+
+/**
+ * Sets the strafehack power on the given client index. Power is the cut off point before it will turn into an autostrafe. 1.0 is the default.
+ *
+ * @param client		Client index of the player to set the power on.
+ * @param value			New power setting.
+ *
+ * @noreturn				
+ */
+native void SetXutaxPower(int client, float value);
+
+/**
+ * Retrieves the current strafehack power for the given client index. Default is 1.0
+ *
+ * @param client		Client index of the player to get the strafehack power.
+
+ * @return				The current strafehack power.
+ */
+native float GetXutaxPower(int client);

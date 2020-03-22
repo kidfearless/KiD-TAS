@@ -19,6 +19,8 @@ float g_fMaxMove = 400.0;
 EngineVersion g_Game;
 bool g_bEnabled[MAXPLAYERS + 1];
 int g_iType[MAXPLAYERS + 1];
+float g_fPower[MAXPLAYERS + 1];
+
 Convar g_ConVar_AutoFind_Offset;
 
 
@@ -37,6 +39,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("GetXutaxStrafe", Native_GetAutostrafe);
 	CreateNative("SetXutaxType", Native_SetType);
 	CreateNative("GetXutaxType", Native_GetType);
+	CreateNative("SetXutaxPower", Native_SetPower);
+	CreateNative("GetXutaxPower", Native_GetPower);
 	return APLRes_Success;
 }
 
@@ -70,6 +74,7 @@ public void OnPluginStart()
 	{
 		SetFailState("This plugin is for CSGO/CSS only.");	
 	}
+
 	g_ConVar_AutoFind_Offset = new Convar("xutax_find_offsets", "1", "Attempt to autofind offsets", _, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
@@ -85,6 +90,7 @@ public void OnClientConnected(int client)
 {
 	g_bEnabled[client] = false;
 	g_iType[client] = Type_SurfOverride;
+	g_fPower[client] = 1.0;
 }
 
 float AngleNormalize(float flAngle)
@@ -264,8 +270,11 @@ float SimulateAirAccelerate(float flVelocity[2], float flWishDir[2], float flAir
 }
 
 // The idea is to get the maximum angle
-float GetMaxDeltaInAir(float flVelocity[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime, bool bRight, bool bLeft)
+float GetMaxDeltaInAir(float flVelocity[2], float flMaxSpeed, float flSurfaceFriction, bool bLeft)
 {
+	float flFrametime = GetTickInterval();
+	float flAirAccelerate = g_ConVar_sv_airaccelerate.FloatValue;
+
 	float flTheta = GetThetaAngleInAir(flVelocity, flAirAccelerate, flMaxSpeed, flSurfaceFriction, flFrametime);
 	
 	// Convert velocity 2D to angle.
@@ -313,17 +322,19 @@ float GetMaxDeltaInAir(float flVelocity[2], float flAirAccelerate, float flMaxSp
 	{
 		return FloatAbs(AngleNormalize(flYawVelocity - flNewBestYawLeft));
 	}
-	else if (bRight)
+	else
 	{
 		return FloatAbs(AngleNormalize(flYawVelocity - flNewBestYawRight));
 	}
 
 	// Do an estimate otherwhise.
-	return FloatAbs(AngleNormalize(flNewBestYawLeft - flNewBestYawRight) / 2.0);
+	// return FloatAbs(AngleNormalize(flNewBestYawLeft - flNewBestYawRight) / 2.0);
 }
 
-void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime, float &flForwardMove, float &flSideMove, bool bPreferRight = true)
+void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], float flMaxSpeed, float flSurfaceFriction, float &flForwardMove, float &flSideMove, bool bPreferRight = true)
 {
+	float flAirAccelerate = g_ConVar_sv_airaccelerate.FloatValue;
+	float flFrametime = GetTickInterval();
 	float flYawVelocity = Vec2DToYaw(flVelocity);
 	
 	// Get theta angle
@@ -457,7 +468,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		float flFrametime = GetTickInterval();
 		
 		float flVelocity[3], flVelocity2D[2];
 		
@@ -468,7 +478,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		
 		// PrintToChat(client, "%f", SquareRoot(flVelocity2D[0] * flVelocity2D[0] + flVelocity2D[1] * flVelocity2D[1]));
 		
-		GetIdealMovementsInAir(angles[1], flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, flFowardMove, flSideMove);
+		GetIdealMovementsInAir(angles[1], flVelocity2D, flMaxSpeed, flSurfaceFriction, flFowardMove, flSideMove);
 		
 		float flAngleDifference = AngleNormalize(angles[1] - g_flOldYawAngle[client]);
 
@@ -476,7 +486,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		// Right
 		if (flAngleDifference < 0.0)
 		{
-			if (FloatAbs(flAngleDifference) < GetMaxDeltaInAir(flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, true, false))
+			if (FloatAbs(flAngleDifference) <= (GetMaxDeltaInAir(flVelocity2D, flMaxSpeed, flSurfaceFriction, true) * g_fPower[client]))
 			{					
 				vel[0] = flFowardMove * g_fMaxMove;
 				vel[1] = flSideMove * g_fMaxMove;
@@ -488,7 +498,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		}
 		else if (flAngleDifference > 0.0)
 		{
-			if (FloatAbs(flAngleDifference) < GetMaxDeltaInAir(flVelocity2D, g_ConVar_sv_airaccelerate.FloatValue, flMaxSpeed, flSurfaceFriction, flFrametime, false, true))
+			if (FloatAbs(flAngleDifference) <= GetMaxDeltaInAir(flVelocity2D, flMaxSpeed, flSurfaceFriction, false) * g_fPower[client])
 			{
 				vel[0] = flFowardMove * g_fMaxMove;
 				vel[1] = flSideMove * g_fMaxMove;
@@ -552,6 +562,20 @@ public any Native_GetType(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	return g_iType[client];
+}
+
+public any Native_SetPower(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	float value = GetNativeCell(2);
+	g_fPower[client] = value;
+	return 0;
+}
+
+public any Native_GetPower(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	return g_fPower[client];
 }
 
 // stocks
