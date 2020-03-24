@@ -56,10 +56,6 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 	{
 		SetXutaxStrafe(client, true);
 	}
-	else if(StrContains(special, "TAS") != -1)
-	{
-		SetXutaxStrafe(client, true);
-	}
 	else
 	{
 		SetXutaxStrafe(client, false);

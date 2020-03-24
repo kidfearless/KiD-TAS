@@ -38,6 +38,7 @@ public Plugin myinfo =
 ConVar sv_cheats;
 ConVar host_timescale;
 Convar g_cDefaultCheats;
+Convar g_cSetCheats;
 bool g_bLate;
 
 methodmap ServerMap
@@ -162,7 +163,8 @@ public void OnPluginStart()
 	Server.Cheats = FindConVar("sv_cheats");
 	Server.HostTimescale = FindConVar("host_timescale");
 
-	g_cDefaultCheats = new Convar("kid_tas_cheats_default", "2", "Default sv_cheats value, used for servers that set cheats on connect.");
+	g_cDefaultCheats = new Convar("kid_tas_cheats_default", "0", "Default sv_cheats value, used for servers that set cheats on connect.");
+	g_cSetCheats = new Convar("kid_tas_cheats_enabled", "0", "Should we set sv_cheats on clients in TAS");
 
 	Convar.AutoExecConfig();
 
@@ -246,15 +248,17 @@ void LoadDHooks()
 
 public void OnPluginEnd()
 {
-	for(int i = 1; i <= MaxClients; ++i)
+	if(g_cSetCheats.BoolValue)
 	{
-		Client client = new Client(i);
-		if(client.Enabled && client.IsConnected)
+		for(int i = 1; i <= MaxClients; ++i)
 		{
-			string_8 convar;
-			convar.FromInt(Server.GetDefaultCheats());
-			Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
-			Server.HostTimescale.ReplicateToClient(client.Index, "1");
+			Client client = new Client(i);
+			if(client.Enabled && client.IsConnected)
+			{
+				string_8 convar;
+				convar.FromInt(Server.GetDefaultCheats());
+				Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
+			}
 		}
 	}
 }
@@ -276,7 +280,6 @@ public void OnClientPutInServer(int index)
 public void OnClientDisconnect(int index)
 {
 	// Client client = new Client(index);
-	SetXutaxStrafe(index, false);
 }
 
 public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings, int mouse[2])

@@ -152,11 +152,8 @@ methodmap Client < CBasePlayer
 		}
 		public set(bool value)
 		{
-			if(_Enabled[this.Index] != value)
-			{
-				_Enabled[this.Index] = value;
-				ToggleTAS(this);
-			}
+			_Enabled[this.Index] = value;
+			ToggleTAS(this);
 		}
 	}
 
@@ -389,7 +386,7 @@ methodmap Client < CBasePlayer
 			return;
 		}
 
-		this.TimeScale = 1.0;
+		_TimeScale[this.Index] = 1.0;
 		this.Enabled = false;
 		this.FastWalk = true;
 		this.Type = XutaxType.Surf;
@@ -450,17 +447,22 @@ stock void ToggleTAS(Client client)
 {
 	if(client.Enabled)
 	{
-		// Keeping this as it's TAS, should honestly have access to everything available
-		Server.Cheats.ReplicateToClient(client.Index, "2");
+		if(g_cSetCheats.BoolValue)
+		{
+			// Keeping this as it's TAS, should honestly have access to everything available
+			Server.Cheats.ReplicateToClient(client.Index, "2");
+		}
 		client.OpenMenu();
 	}
 	else
 	{
 		client.TimeScale = 1.0;
-		string_8 convar;
-		convar.FromInt(Server.GetDefaultCheats());
-		Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
-		Server.HostTimescale.ReplicateToClient(client.Index, "1");
+		if(g_cSetCheats.BoolValue)
+		{
+			string_8 convar;
+			convar.FromInt(Server.GetDefaultCheats());
+			Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
+		}
 	}
 }
 
