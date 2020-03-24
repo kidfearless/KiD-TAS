@@ -41,6 +41,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("GetXutaxType", Native_GetType);
 	CreateNative("SetXutaxPower", Native_SetPower);
 	CreateNative("GetXutaxPower", Native_GetPower);
+
+	RegPluginLibrary("xutax-strafe");
 	return APLRes_Success;
 }
 
