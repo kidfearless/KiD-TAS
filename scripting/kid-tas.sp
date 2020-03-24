@@ -145,6 +145,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("TAS_GetCurrentTimescale", Native_GetCurrentTimescale);
 	CreateNative("TAS_Enabled", Native_Enabled);
 
+	RegPluginLibrary("kid-tas");
+
 	Server.IsLate = late;
 	return APLRes_Success;
 }
@@ -323,10 +325,10 @@ public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float 
 		return;
 	}
 
-	if(client.Enabled && !client.IsAlive)
-	{
-		client.TimeScale = 1.0;
-	}
+	// if(client.Enabled && !client.IsAlive)
+	// {
+	// 	client.TimeScale = 1.0;
+	// }
 }
 
 public void Shavit_OnLeaveZone(int index, int type, int track, int id, int entity, int data)
