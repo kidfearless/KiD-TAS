@@ -49,7 +49,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnLibraryAdded(const char[] name)
 {
-	if(StrEquals(name, "kid-tas"))
+	if(StrEqual(name, "kid-tas"))
 	{
 		g_bTASEnabled = true;
 	}
@@ -57,7 +57,7 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-	if(StrEquals(name, "kid-tas"))
+	if(StrEqual(name, "kid-tas"))
 	{
 		g_bTASEnabled = false;
 	}
