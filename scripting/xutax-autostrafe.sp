@@ -43,11 +43,6 @@ public Action Command_StrafeType(int client, int args)
 	return Plugin_Handled;
 }
 
-public void OnClientConnected(int client)
-{
-	SetXutaxStrafe(client, false);
-}
-
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
 {
 	char special[128];

@@ -20,6 +20,7 @@ EngineVersion g_Game;
 bool g_bEnabled[MAXPLAYERS + 1];
 int g_iType[MAXPLAYERS + 1];
 float g_fPower[MAXPLAYERS + 1] = {1.0, ...};
+bool g_bTASEnabled;
 
 Convar g_ConVar_AutoFind_Offset;
 
@@ -44,6 +45,22 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	RegPluginLibrary("xutax-strafe");
 	return APLRes_Success;
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEquals(name, "kid-tas"))
+	{
+		g_bTASEnabled = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEquals(name, "kid-tas"))
+	{
+		g_bTASEnabled = false;
+	}
 }
 
 public void OnPluginStart()
@@ -623,9 +640,12 @@ public bool TRFilter_NoPlayers(int entity, int mask, any data)
 
 stock bool ShouldProcessFrame(int client)
 {
-	if(GetFeatureStatus(FeatureType_Native, "TAS_ShouldProcessFrame") == FeatureStatus_Available)
+	if(g_bTASEnabled)
 	{
-		return TAS_Enabled(client) && TAS_ShouldProcessFrame(client);
+		if(TAS_Enabled(client))
+		{
+			return TAS_ShouldProcessFrame(client);
+		}
 	}
 
 	return true;
