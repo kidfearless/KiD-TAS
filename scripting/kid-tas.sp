@@ -289,7 +289,7 @@ public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float v
 	Client client = new Client(index);
 	client.Buttons = buttons;
 
-	if(!client.IsAlive || !client.Enabled || (!client.Movetype == MOVETYPE_NOCLIP))
+	if(!client.IsAlive || !client.Enabled ||)
 	{
 		return Plugin_Continue;
 	}
