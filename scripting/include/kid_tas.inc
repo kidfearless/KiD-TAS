@@ -452,7 +452,8 @@ stock void ToggleTAS(Client client)
 			// Keeping this as it's TAS, should honestly have access to everything available
 			Server.Cheats.ReplicateToClient(client.Index, "2");
 		}
-		client.OpenMenu();
+		
+		RequestFrame(Frame_OpenMenu, client.Serial);
 	}
 	else
 	{
@@ -463,6 +464,15 @@ stock void ToggleTAS(Client client)
 			convar.FromInt(Server.GetDefaultCheats());
 			Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
 		}
+	}
+}
+
+public void Frame_OpenMenu(int serial)
+{
+	Client client = new Client(GetClientFromSerial(serial));
+	if(client.Valid && client.Enabled)
+	{
+		client.OpenMenu();
 	}
 }
 
