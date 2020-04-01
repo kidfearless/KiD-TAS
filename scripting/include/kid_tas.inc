@@ -36,6 +36,7 @@ static float _NextFrame[MAXPLAYERS+1];
 static bool _UseThisFrame[MAXPLAYERS+1];
 static MoveType _LastMoveType[MAXPLAYERS+1];
 static int _XutaxType[MAXPLAYERS+1];
+static ArrayList _Frames[MAXPLAYERS+1];
 
 enum Client
 {
@@ -150,6 +151,36 @@ methodmap Client < CBasePlayer
 		TeleportEntity(this, origin, angles, velocity);
 	}
 
+	public void GetVelocity(float vecvelocity[3])
+	{
+		GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
+	}
+
+	public void GetBaseVelocity(float vec[3])
+	{
+		GetEntPropVector(this, Prop_Data, "m_vecBaseVelocity", vec);
+	}
+
+	public void GetTargetName(char[] buffer, int length = 64)
+	{
+		GetEntPropString(this, Prop_Data, "m_iName", buffer, length);
+	}
+
+	public void SetTargetName(char[] buffer)
+	{
+		SetEntPropString(this, Prop_Data, "m_iName", buffer);
+	}
+
+	public void GetClassName(char[] buffer, int length = 64)
+	{
+		GetEntityClassname(this, buffer, length);
+	}
+
+	public void SetClassName(char[] buffer)
+	{
+		SetEntPropString(this, Prop_Data, "m_iClassname", buffer);
+	}
+
 	property MoveType Movetype
 	{
 		public get()
@@ -203,6 +234,116 @@ methodmap Client < CBasePlayer
 		}
 	}
 
+	property bool Ducked
+	{
+		public get()
+		{
+			return !!GetEntProp(this, Prop_Send, "m_bDucked");
+		}
+		public set(bool value)
+		{
+			SetEntProp(this, Prop_Send, "m_bDucked", value);
+		}
+	}
+
+	property bool Ducking
+	{
+		public get()
+		{
+			return !!GetEntProp(this, Prop_Send, "m_bDucking");
+		}
+		public set(bool value)
+		{
+			SetEntProp(this, Prop_Send, "m_bDucking", value);
+		}
+	}
+
+	property float Stamina
+	{
+		public get()
+		{
+			return GetEntPropFloat(this, Prop_Send, "m_flStamina");
+		}
+		public set(float value)
+		{
+			SetEntProp(this, Prop_Send, "m_flStamina", value);
+		}
+	}
+
+	property float DuckSpeed
+	{
+		public get()
+		{
+			return GetEntPropFloat(this, Prop_Send, "m_flDuckSpeed");
+		}
+		public set(float value)
+		{
+			SetEntProp(this, Prop_Send, "m_flDuckSpeed", value);
+		}
+	}
+
+	property float DuckTime
+	{
+		public get()
+		{
+			if(Server.IsCSS)
+			{
+				GetEntPropFloat(this, Prop_Send, "m_flDucktime");
+			}
+			else
+			{
+				GetEntPropFloat(this, Prop_Send, "m_flDuckAmount");
+			}
+		}
+		public set(float value)
+		{
+			if(Server.IsCSS)
+			{
+				SetEntPropFloat(this, Prop_Send, "m_flDucktime", value);
+			}
+			else
+			{
+				SetEntPropFloat(this, Prop_Send, "m_flDuckAmount", value);
+			}
+		}
+	}
+
+	property int GroundEntity
+	{
+		public get()
+		{
+			return GetEntPropEnt(this, Prop_Send, "m_hGroundEntity");
+		}
+		public set(int value)
+		{
+			SetEntPropEnt(this, Prop_Data, "m_hGroundEntity", value);
+		}
+	}
+
+	property int Flags
+	{
+		public get()
+		{
+			return GetEntityFlags(this);
+		}
+		public set(int value)
+		{
+			SetEntityFlags(this, value);
+		}
+	}
+
+	property ArrayList Frames
+	{
+		public get()
+		{
+			return _Frames[this];
+		}
+		public set(ArrayList value)
+		{
+			_Frames[this] = value;
+		}
+	}
+
 	property bool ForceJump
 	{
 		public get()
@@ -247,19 +388,6 @@ methodmap Client < CBasePlayer
 			GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
 			vecvelocity[2] = 0.0;
 			return GetVectorLength(vecvelocity);
-		}
-	}
-
-	public void GetVelocity(float vecvelocity[3])
-	{
-		GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
-	}
-
-	property int GroundEntity
-	{
-		public get()
-		{
-			this.GetPropEnt(Prop_Send, "m_hGroundEntity");
 		}
 	}
 
@@ -519,6 +647,140 @@ public void Frame_OpenMenu(int serial)
 	if(client.Valid && client.Enabled)
 	{
 		client.OpenMenu();
+	}
+}
+
+enum struct TASFrame
+{
+	int index; // current index of that frame to put them in
+
+	float time;
+	int jumps;
+	int strafes;
+	int totalmeasures;
+	int gains;
+
+	float origin[3];
+	float angles[3];
+	float velocity[3];
+	float basevelocity[3];
+	MoveType movetype;
+	float gravity;
+	float speed;
+	float stamina;
+	bool ducked;
+	bool ducking;
+	float ducktime; // m_flDuckAmount in csgo
+	float duckspeed; // m_flDuckSpeed in csgo; doesn't exist in css
+	int flags;
+	char targetname[64];
+	// int targetname;
+	char classname[64];
+	// int classname;
+	int groundentity;
+
+	void Update(Client client)
+	{
+		client.GetAbsOrigin(this.origin);
+		client.GetEyeAngles(this.angles);
+		client.GetVelocity(this.velocity);
+		client.GetBaseVelocity(this.basevelocity);
+		client.GetTargetName(this.targetname);
+		client.GetClassName(this.classname);
+
+		this.movetype = client.Movetype;
+		this.gravity = client.Gravity;
+		this.speed = client.LaggedMovementValue;
+
+		this.stamina = client.Stamina;
+		this.groundentity = client.GroundEntity;
+		
+		this.flags = client.Flags;
+
+		this.ducked = client.Ducked;
+		this.ducking = client.Ducking;
+		
+		this.ducktime = client.DuckTime;
+		if(Server.IsCSGO)
+		{
+			this.duckspeed = client.DuckSpeed;
+		}
+
+		timer_snapshot_t snapshot;
+
+		Shavit_SaveSnapshot(client, snapshot);
+
+		this.time = snapshot.fCurrentTime;
+		this.jumps = snapshot.iJumps;
+		this.strafes = snapshot.iStrafes;
+		this.totalmeasures = snapshot.iTotalMeasures;
+		this.gains = snapshot.iGoodGains;
+	}
+
+	void Set(Client client)
+	{
+		if(IsNullVector(this.origin))
+		{
+			return;
+		}
+
+		if(!client.IsAlive)
+		{
+			// Shavit_PrintToChat(client, "%T", "CommandAlive", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+			return;
+		}
+
+		if(Shavit_InsideZone(client, Zone_Start, -1))
+		{
+			Shavit_StopTimer(client);
+		}
+
+		MoveType mt = this.movetype;
+
+		if(mt == MOVETYPE_LADDER || mt == MOVETYPE_WALK)
+		{
+			client.Movetype = mt;
+		}
+
+		client.Flags = this.flags;
+		client.LaggedMovementValue = this.speed;
+		client.GroundEntity = this.groundentity;
+		client.Stamina = this.stamina;
+		client.Ducked = this.ducked;
+		client.Ducking = this.ducking;
+		client.DuckTime = this.ducktime;
+
+		if(Server.IsCSGO)
+		{
+			client.DuckSpeed = this.duckspeed;
+		}
+
+		timer_snapshot_t snapshot;
+		snapshot.bTimerEnabled = true;
+		snapshot.fCurrentTime = this.time;
+		snapshot.bClientPaused = false;
+		snapshot.iJumps = this.jumps;
+		snapshot.bsStyle = client.Style;
+		snapshot.iTotalMeasures = this.totalmeasures;
+		snapshot.iGoodGains = this.gains;
+		snapshot.iSHSWCombination = 0;
+		snapshot.iTimerTrack = client.Track;
+		snapshot.iMeasuredJumps = snapshot.iJumps;
+		snapshot.iPerfectJumps = snapshot.iJumps;
+
+		Shavit_LoadSnapshot(client, snapshot);
+		Shavit_ResumeTimer(client);
+
+		float vel[3];
+		AddVectors(vel, this.basevelocity, this.velocity);
+
+		client.SetTargetName(this.targetname);
+		client.SetClassName(this.classname);
+		
+		client.Teleport(this.origin, this.angles, vel);
+
+		client.Gravity = this.gravity;		
 	}
 }
 
