@@ -273,15 +273,15 @@ public void OnPluginEnd()
 
 public void OnClientPutInServer(int index)
 {
-	Client client = new Client(index);
+	// Client client = new Client(index);
 	SDKHook(index, SDKHook_PreThinkPost, OnPreThinkPost);
 	SDKHook(index, SDKHook_PostThinkPost, OnPostThink);
-	client.ResetVariables();
 }
 
 public void OnClientDisconnect(int index)
 {
-	// Client client = new Client(index);
+	Client client = new Client(index);
+	client.ResetVariables();
 }
 
 public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings, int mouse[2])
