@@ -44,6 +44,47 @@ enum Client
 	CLIENT_SIZE = MAXPLAYERS
 }
 
+
+stock Client operator=(int value)
+{
+	return view_as<Client>(value);
+}
+
+stock int operator=(Client value)
+{
+	return view_as<int>(value);
+}
+
+stock Client operator++(Client client)
+{
+	return view_as<Client>(view_as<int>(client)++);
+}
+
+stock Client operator--(Client client)
+{
+	return view_as<Client>(view_as<int>(client)--);
+}
+
+stock bool operator<(Client client, int value)
+{
+	return view_as<int>(client) < value;
+}
+
+stock bool operator<=(Client client, int value)
+{
+	return view_as<int>(client) <= value;
+}
+
+stock bool operator==(Client client, int value)
+{
+	return view_as<int>(client) == value;
+}
+
+stock bool operator>=(Client client, int value)
+{
+	return view_as<int>(client) >= value;
+}
+
 methodmap Client < CBasePlayer
 {
 	// constructors
@@ -82,37 +123,42 @@ methodmap Client < CBasePlayer
 
 	public int GetProp( PropType propType, const char[] propName, int size = 4, int element = 0 )
 	{
-		return GetEntProp( this.Index, propType, propName, size, element );
+		return GetEntProp( this, propType, propName, size, element );
 	}
 
 	public int GetPropEnt( PropType propType, const char[] propName, int element = 0 )
 	{
-		return GetEntPropEnt( this.Index, propType, propName, element );
+		return GetEntPropEnt( this, propType, propName, element );
 	}
 
 	public void PrintToConsole(const char[] format, any ...)
 	{
 		string buffer;
 		VFormat(buffer.StringValue, buffer.Size(), format, 3);
-		PrintToConsole(this.Index, buffer.StringValue);
+		PrintToConsole(this, buffer.StringValue);
 	}
 
 	public void ReplyToCommand(const char[] format, any ...)
 	{
 		string buffer;
 		VFormat(buffer.StringValue, buffer.Size(), format, 3);
-		ReplyToCommand(this.Index, buffer.StringValue);
+		ReplyToCommand(this, buffer.StringValue);
+	}
+
+	public void Teleport(const float origin[3] = NULL_VECTOR, const float angles[3] = NULL_VECTOR, const float velocity[3] = NULL_VECTOR)
+	{
+		TeleportEntity(this, origin, angles, velocity);
 	}
 
 	property MoveType Movetype
 	{
 		public get()
 		{
-			return GetEntityMoveType(this.Index);
+			return GetEntityMoveType(this);
 		}
 		public set(MoveType type)
 		{
-			SetEntityMoveType(this.Index, type);
+			SetEntityMoveType(this, type);
 		}
 	}
 
@@ -120,11 +166,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _LastMoveType[this.Index];
+			return _LastMoveType[this];
 		}
 		public set(MoveType type)
 		{
-			_LastMoveType[this.Index] = type;
+			_LastMoveType[this] = type;
 		}
 	}
 
@@ -132,7 +178,7 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return Shavit_GetBhopStyle(this.Index);
+			return Shavit_GetBhopStyle(this);
 		}
 	}
 
@@ -140,7 +186,7 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return Shavit_GetClientTrack(this.Index);
+			return Shavit_GetClientTrack(this);
 		}
 	}
 
@@ -148,11 +194,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _Enabled[this.Index];
+			return _Enabled[this];
 		}
 		public set(bool value)
 		{
-			_Enabled[this.Index] = value;
+			_Enabled[this] = value;
 			ToggleTAS(this);
 		}
 	}
@@ -161,11 +207,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _ForceJump[this.Index];
+			return _ForceJump[this];
 		}
 		public set(bool value)
 		{
-			_ForceJump[this.Index] = value;
+			_ForceJump[this] = value;
 		}
 	}
 
@@ -173,11 +219,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _Buttons[this.Index];
+			return _Buttons[this];
 		}
 		public set(int value)
 		{
-			_Buttons[this.Index] = value;
+			_Buttons[this] = value;
 		}
 	}
 
@@ -185,11 +231,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _NextFrame[this.Index];
+			return _NextFrame[this];
 		}
 		public set(float value)
 		{
-			_NextFrame[this.Index] = value;
+			_NextFrame[this] = value;
 		}
 	}
 
@@ -198,7 +244,7 @@ methodmap Client < CBasePlayer
 		public get()
 		{
 			float vecvelocity[3];
-			GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
+			GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
 			vecvelocity[2] = 0.0;
 			return GetVectorLength(vecvelocity);
 		}
@@ -206,7 +252,7 @@ methodmap Client < CBasePlayer
 
 	public void GetVelocity(float vecvelocity[3])
 	{
-		GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
+		GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
 	}
 
 	property int GroundEntity
@@ -229,11 +275,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _AutoJump[this.Index];
+			return _AutoJump[this];
 		}
 		public set(bool value)
 		{
-			_AutoJump[this.Index] = value;
+			_AutoJump[this] = value;
 		}
 	}
 
@@ -241,11 +287,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetXutaxStrafe(this.Index);
+			return GetXutaxStrafe(this);
 		}
 		public set(bool value)
 		{
-			SetXutaxStrafe(this.Index, value);
+			SetXutaxStrafe(this, value);
 		}
 	}
 
@@ -253,11 +299,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _UseThisFrame[this.Index];
+			return _UseThisFrame[this];
 		}
 		public set(bool value)
 		{
-			_UseThisFrame[this.Index] = value;
+			_UseThisFrame[this] = value;
 		}
 	}
 
@@ -265,11 +311,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _FastWalk[this.Index];
+			return _FastWalk[this];
 		}
 		public set(bool value)
 		{
-			_FastWalk[this.Index] = value;
+			_FastWalk[this] = value;
 		}
 	}
 
@@ -277,11 +323,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntPropFloat(this.Index, Prop_Data, "m_flLaggedMovementValue");
+			return GetEntPropFloat(this, Prop_Data, "m_flLaggedMovementValue");
 		}
 		public set(float value)
 		{
-			SetEntPropFloat(this.Index, Prop_Data, "m_flLaggedMovementValue", value);
+			SetEntPropFloat(this, Prop_Data, "m_flLaggedMovementValue", value);
 		}
 	}
 
@@ -289,24 +335,24 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _TimeScale[this.Index];
+			return _TimeScale[this];
 		}
 		public set(float value)
 		{
 			if(value < 0.1)
 			{
-				_TimeScale[this.Index] = 0.1;
+				_TimeScale[this] = 0.1;
 			}
 			else if(value > 1.0)
 			{
-				_TimeScale[this.Index] = 1.0;
+				_TimeScale[this] = 1.0;
 			}
 			else
 			{
-				_TimeScale[this.Index] = value;
+				_TimeScale[this] = value;
 			}
 
-			Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
+			Shavit_SetClientTimescale(this, _TimeScale[this]);
 			this.LaggedMovementValue = 1.0;
 		}
 	}
@@ -315,16 +361,16 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _XutaxType[this.Index];
+			return _XutaxType[this];
 		}
 		public set(int value)
 		{
 			value %= XutaxType.Size;
 
-			if(value != _XutaxType[this.Index])
+			if(value != _XutaxType[this])
 			{
-				SetXutaxType(this.Index, value);
-				_XutaxType[this.Index] = value;
+				SetXutaxType(this, value);
+				_XutaxType[this] = value;
 			}
 		}
 	}
@@ -376,7 +422,7 @@ methodmap Client < CBasePlayer
 		
 		menu.Pagination = MENU_NO_PAGINATION;
 		menu.ExitButton = true;
-		menu.Display(this.Index, MENU_TIME_FOREVER);
+		menu.Display(this, MENU_TIME_FOREVER);
 	}
 
 	public void ResetVariables()
@@ -386,7 +432,7 @@ methodmap Client < CBasePlayer
 			return;
 		}
 
-		_TimeScale[this.Index] = 1.0;
+		_TimeScale[this] = 1.0;
 		this.Enabled = false;
 		this.FastWalk = true;
 		this.Type = XutaxType.Surf;
@@ -394,14 +440,14 @@ methodmap Client < CBasePlayer
 
 	public void DoFastWalk(float vel[3])
 	{
-		bool direction = _FastWalkDirection[this.Index];
+		bool direction = _FastWalkDirection[this];
 
 		if(this.Buttons & IN_FORWARD && !(this.Buttons & (IN_MOVELEFT | IN_MOVERIGHT)))
 		{
 			vel[1] = direction ? PERFSPEEDHACK : -PERFSPEEDHACK;
 		}
 
-		_FastWalkDirection[this.Index] = !direction;
+		_FastWalkDirection[this] = !direction;
 	}
 
 	public void DoAutoJump(int& buttons)
@@ -450,7 +496,7 @@ stock void ToggleTAS(Client client)
 		if(g_cSetCheats.BoolValue)
 		{
 			// Keeping this as it's TAS, should honestly have access to everything available
-			Server.Cheats.ReplicateToClient(client.Index, "2");
+			Server.Cheats.ReplicateToClient(client, "2");
 		}
 		
 		RequestFrame(Frame_OpenMenu, client.Serial);
@@ -462,7 +508,7 @@ stock void ToggleTAS(Client client)
 		{
 			string_8 convar;
 			convar.FromInt(Server.GetDefaultCheats());
-			Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
+			Server.Cheats.ReplicateToClient(client, convar.StringValue);
 		}
 	}
 }

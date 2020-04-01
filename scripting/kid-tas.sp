@@ -259,7 +259,7 @@ public void OnPluginEnd()
 			{
 				string_8 convar;
 				convar.FromInt(Server.GetDefaultCheats());
-				Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
+				Server.Cheats.ReplicateToClient(client, convar.StringValue);
 			}
 		}
 	}
@@ -436,7 +436,7 @@ public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
 
 			if (info.Equals("cp"))
 			{
-				FakeClientCommand(client.Index, "sm_cpmenu");
+				FakeClientCommand(client, "sm_cpmenu");
 			}
 			else
 			{
