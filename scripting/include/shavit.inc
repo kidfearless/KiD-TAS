@@ -793,7 +793,7 @@ forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int custom
  * @param snapshot					A snapshot of the client's timer when printing the message.
  * @param overwrite					Modify the database? 0 - no. 1 - brand new record. 2 - new personal best.
  * @param rank						Rank on map.
- * @return							Plugin_Handled or _Stop to stop the message. Anything else to use new values.
+ * @return							Plugin_Handled or Plugin_Stop to stop the message. Anything else to use new values.
  */
 forward Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot_t snapshot, int overwrite, int rank, char[] message, int maxlen);
 
@@ -806,6 +806,28 @@ forward Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot
  * @noreturn
  */
 forward void Shavit_OnTimescaleChanged(int client, float oldtimescale, float newtimescale);
+
+/**
+ * Called after the checkpoint menu has been made and before it's sent to the client.
+ *
+ * @param client					Client index.
+ * @param segmented					If the menu was a segmented menu
+ * @return							Plugin_Handled or Plugin_Stop to stop the menu.
+ */
+forward Action Shavit_OnCheckPointMenuMade(int client, bool segmented);
+
+/**
+ * Called after the checkpoint menu has been made and before it's sent to the client.
+ *
+ * @param client					Client index.
+ * @param param2					Second parameter in the callback, usually the item selected.
+ * @param info						reference copy of the info string used in the callback
+ * @param maxlength					length of the info buffer
+ * @param currentCheckpoint			Clients current checkpoint
+ * @param maxCPs					Max checkpoints the client can use
+ * @return							Plugin_Continue to continue the callback.
+ */
+forward Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info, int maxlength, int currentCheckpoint, int maxCPs);
 
 /**
  * Returns the game type the server is running.
@@ -1659,6 +1681,43 @@ native void Shavit_SetClientTimescale(int client, float scale);
  */
 native float Shavit_GetClientTimescale(int client);
 
+/**
+ * Gets the replay status
+ *
+ * @param style						Replay style
+ *
+ * @return							Replay's status
+ */
+native ReplayStatus Shavit_GetReplayStatus(int style);
+
+/**
+ * Saves a new checkpoint and returns the new checkpoint index
+ *
+ * @param client					Client index
+ *
+ * @return							The new current checkpoint
+ */
+native int Shavit_SaveCheckpoint(int client);
+
+/**
+ * Gets the current checkpoint index.
+ *
+ * @param client					Client index
+ *
+ * @return							The current checkpoint
+ */
+native int Shavit_GetCurrentCheckpoint(int client);
+
+/**
+ * Sets the current checkpoint index.
+ *
+ * @param client					Client index
+ * @param index						New index to use
+ *
+ * @noreturn
+ */
+native void Shavit_SetCurrentCheckpoint(int client, int index);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -1728,6 +1787,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayFrames");
 	MarkNativeAsOptional("Shavit_GetReplayLength");
 	MarkNativeAsOptional("Shavit_GetReplayName");
+	MarkNativeAsOptional("Shavit_GetReplayStatus");
 	MarkNativeAsOptional("Shavit_GetReplayTime");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
@@ -1782,5 +1842,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_OpenCheckpointMenu");
 	MarkNativeAsOptional("Shavit_GetClientTimescale");
 	MarkNativeAsOptional("Shavit_SetClientTimescale");
+	MarkNativeAsOptional("Shavit_SaveCheckpoint");
+	MarkNativeAsOptional("Shavit_GetCurrentCheckpoint");
+	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
 }
 #endif
