@@ -51,7 +51,7 @@ methodmap Client < CBasePlayer
 	{
 		return view_as<Client>(client);
 	}
- 
+
 	public static Client Create(int client)
 	{
 		return new Client(client);
@@ -357,7 +357,7 @@ methodmap Client < CBasePlayer
 		menu.AddItem("jmp", (this.AutoJump ? "[X] Auto-jump from start zone?" : "[ ] Auto-jump from start zone?"));
 
 		menu.AddItem("sh", (this.StrafeHack ? "[X] Strafe hack" : "[ ] Strafe Hack"));
-		
+
 		if(this.StrafeHack)
 		{
 			if(this.Type == XutaxType.Normal)
@@ -373,7 +373,7 @@ methodmap Client < CBasePlayer
 				menu.AddItem("ty", "Type: Manual");
 			}
 		}
-		
+
 		menu.Pagination = MENU_NO_PAGINATION;
 		menu.ExitButton = true;
 		menu.Display(this.Index, MENU_TIME_FOREVER);
@@ -438,7 +438,7 @@ methodmap Client < CBasePlayer
 				return result;
 			}
 		}
-		
+
 		return INVALID_CLIENT;
 	}
 }
@@ -452,7 +452,7 @@ stock void ToggleTAS(Client client)
 			// Keeping this as it's TAS, should honestly have access to everything available
 			Server.Cheats.ReplicateToClient(client.Index, "2");
 		}
-		
+
 		RequestFrame(Frame_OpenMenu, client.Serial);
 	}
 	else

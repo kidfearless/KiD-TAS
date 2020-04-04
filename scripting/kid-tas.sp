@@ -3,14 +3,14 @@
 #endif
 #define __tas_included
 
-/* 
+/*
 	Due to issues with host_timescale on csgo and css it will no longer be an option.
 	CSGO:	Voice comms become distorted
 	CSS:	Extra frames are processed in the replay files(possibly csgo too)
 	BOTH: 	Is dependent on the client being honest and not changing the timescale themselves.
 
 	To use the host_timescale method the server must have sv_maxusrcmdprocessticks 0.
-	This will disable the speed hack prevention on the server and allow clients to 
+	This will disable the speed hack prevention on the server and allow clients to
 	Send less than the servers tickrate in frames.
 */
 
@@ -26,12 +26,12 @@
 #include <xutaxstrafe>
 #include <kid_tas_api>
 
-public Plugin myinfo = 
+public Plugin myinfo =
 {
-	name = "Shavit - TAS", 
-	author = "KiD Fearless", 
-	description = "TAS module for shavits timer.", 
-	version = "2.0", 
+	name = "Shavit - TAS",
+	author = "KiD Fearless",
+	description = "TAS module for shavits timer.",
+	version = "2.0",
 	url = "https://github.com/kidfearless/"
 };
 
@@ -220,7 +220,7 @@ void LoadDHooks()
 	}
 
 	Address IGameMovement = SDKCall(CreateInterface, interfaceName, 0);
-	
+
 	if(!IGameMovement)
 	{
 		SetFailState("Failed to get IGameMovement pointer");
@@ -242,7 +242,7 @@ void LoadDHooks()
 	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
 	DHookRaw(processMovementPost, true, IGameMovement);
 
-	
+
 
 	delete CreateInterface;
 	delete gamedataConf;
@@ -293,7 +293,7 @@ public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float v
 	{
 		return Plugin_Continue;
 	}
-	
+
 	if(!client.ProcessFrame)
 	{
 		return Plugin_Continue;
@@ -539,16 +539,16 @@ public any Native_Enabled(Handle time, int numParams)
 public float NormalizeAngle(float angle)
 {
 	float temp = angle;
-	
+
 	while (temp <= -180.0)
 	{
 		temp += 360.0;
 	}
-	
+
 	while (temp > 180.0)
 	{
 		temp -= 360.0;
 	}
-	
+
 	return temp;
 }
