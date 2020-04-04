@@ -13,7 +13,7 @@
 #include <convar_class>
 #include <thelpers/thelpers>
 #include <xutaxstrafe>
-#include <intmap-kid>
+/* #include <intmap-kid>
 
 static stock IntMap s_MenuMap;
 
@@ -21,7 +21,7 @@ static stock IntMap s_MenuMap;
 void OnPluginStarted()
 {
 	s_MenuMap = new IntMap();
-}
+} */
 
 /*
 
@@ -713,6 +713,8 @@ methodmap Client < CBasePlayer
 			return;
 		}
 
+		// temp setup to hide desiscion menu
+		this.UseCheckpoints = true;
 		switch(_UseCheckpoints[this])
 		{
 			case 1:
