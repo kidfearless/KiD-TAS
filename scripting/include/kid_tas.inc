@@ -106,7 +106,7 @@ methodmap Client < CBasePlayer
 	{
 		return view_as<Client>(client);
 	}
- 
+
 	public static Client Create(int client)
 	{
 		return new Client(client);
@@ -620,11 +620,11 @@ methodmap Client < CBasePlayer
 		// Title
 		display.Format("%T\n ", "Pick Your Type", this);
 		menu.SetTitle(display.Value);
-		
+
 		// Rewind TAS
 		display.Format("%T ", "Rewind TAS", this);
 		menu.AddItem("0", display.Value);
-		
+
 		// Checkpoint TAS
 		display.Format("%T ", "Checkpoint TAS", this);
 		menu.AddItem("1", display.Value);
@@ -642,11 +642,11 @@ methodmap Client < CBasePlayer
 		// title
 		display.Format("%T\n ", "TAS Menu", this);
 		panel.SetTitle(display.Value);
-		
+
 		// save
 		display.Format("%T", "MiscCheckpointSave", this, this.TotalCheckpoints + 1);
 		panel.DrawItem(display.Value);
-		
+
 		// teleport
 		if(this.TotalCheckpoints > 0)
 		{
@@ -672,11 +672,11 @@ methodmap Client < CBasePlayer
 		// --Timescale
 		display.Format("--%T", "Timescale", this);
 		panel.DrawItem(display.Value);
-		
+
 		// Current Timescale
 		display.Format("%T", "Current Timescale", this, this.TimeScale + 0.001);
 		panel.DrawItem(display.Value, ITEMDRAW_RAWLINE);
-		
+
 		// ++Timescale
 		display.Format("++%T", "Timescale", this);
 		panel.DrawItem(display.Value);
@@ -686,13 +686,13 @@ methodmap Client < CBasePlayer
 		// Strafehack Settings
 		display.Format("%T", "Strafehack Settings", this);
 		panel.DrawItem(display.Value);
-		
+
 		// Autojump
 		display.Format("%T", "Autojump", this, (this.AutoJump ? "X" : " "));
 		panel.DrawItem(display.Value);
 
 		panel.DrawItem(" ", ITEMDRAW_RAWLINE);
-		
+
 		// Exit
 		display.Format("%T", "Exit", this);
 		panel.DrawItem(display.Value);
@@ -741,7 +741,7 @@ methodmap Client < CBasePlayer
 		// Title
 		display.Format("%T\n ", "Strafehack Settings", this);
 		panel.SetTitle(display.Value);
-		
+
 		// Strafe Hack
 		display.Format("%T\n ", "Strafe hack", this, this.StrafeHack ? "X" : " ");
 		panel.DrawItem(display.Value);
@@ -756,7 +756,7 @@ methodmap Client < CBasePlayer
 		// ++Power
 		display.Format("++%T", "Power", this);
 		panel.DrawItem(display.Value);
-		
+
 		// Type
 		if(this.Type == XutaxType.Normal)
 		{
@@ -777,7 +777,7 @@ methodmap Client < CBasePlayer
 		panel.CurrentKey = 7;
 		display.Format("%T", "Back", this);
 		panel.DrawItem(display.Value);
-		
+
 		// Exit
 		panel.CurrentKey = Server.IsCSGO ? 9 : 10;
 		display.Format("%T", "Exit", this);
@@ -846,7 +846,7 @@ methodmap Client < CBasePlayer
 				return result;
 			}
 		}
-		
+
 		return INVALID_CLIENT;
 	}
 }
@@ -895,7 +895,7 @@ public int MenuHandler_TASCheckPoint(Menu menu, MenuAction action, int param1, i
 			{
 				return 0;
 			}
-			
+
 			EmitSoundToClient(client, "buttons/button14.wav");
 			switch(param2)
 			{
@@ -938,7 +938,7 @@ public int MenuHandler_TASCheckPoint(Menu menu, MenuAction action, int param1, i
 					return 0;
 				}
 			}
-			
+
 
 			client.OpenMenu();
 		}
@@ -1077,12 +1077,12 @@ enum struct TASFrame
 
 		this.stamina = client.Stamina;
 		this.groundentity = client.GroundEntity;
-		
+
 		this.flags = client.Flags;
 
 		this.ducked = client.Ducked;
 		this.ducking = client.Ducking;
-		
+
 		this.ducktime = client.DuckTime;
 		if(Server.IsCSGO)
 		{
@@ -1160,10 +1160,10 @@ enum struct TASFrame
 
 		client.SetTargetName(this.targetname);
 		client.SetClassName(this.classname);
-		
+
 		client.Teleport(this.origin, this.angles, vel);
 
-		client.Gravity = this.gravity;		
+		client.Gravity = this.gravity;
 	}
 }
 
