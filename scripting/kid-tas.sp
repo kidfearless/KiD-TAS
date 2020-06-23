@@ -187,7 +187,7 @@ public void OnPluginStart()
 		}
 	}
 
-	OnPluginStarted();
+	// OnPluginStarted();
 }
 
 void LoadDHooks()
@@ -265,7 +265,7 @@ public void OnPluginEnd()
 			{
 				string_8 convar;
 				convar.FromInt(Server.GetDefaultCheats());
-				Server.Cheats.ReplicateToClient(client, convar.Value);
+				Server.Cheats.ReplicateToClient(client.Index, convar.Value);
 			}
 		}
 	}

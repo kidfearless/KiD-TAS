@@ -48,7 +48,7 @@ static MoveType _LastMoveType[MAXPLAYERS+1];
 static int _XutaxType[MAXPLAYERS+1];
 static ArrayList _Frames[MAXPLAYERS+1];
 static int _UseCheckpoints[MAXPLAYERS+1] = {-1, ...};
-static stock IntMap _IntMapFrames[MAXPLAYERS+1];
+// static stock IntMap _IntMapFrames[MAXPLAYERS+1];
 static int _CurrentCheckpoint[MAXPLAYERS+1];
 static int _TotalCheckpoints[MAXPLAYERS+1];
 
@@ -57,46 +57,6 @@ enum Client
 	INVALID_CLIENT = -1,
 	SERVER_CLIENT = 0,
 	CLIENT_SIZE = MAXPLAYERS
-}
-
-stock Client operator=(int value)
-{
-	return view_as<Client>(value);
-}
-
-stock int operator=(Client value)
-{
-	return view_as<int>(value);
-}
-
-stock Client operator++(Client client)
-{
-	return view_as<Client>(view_as<int>(client)++);
-}
-
-stock Client operator--(Client client)
-{
-	return view_as<Client>(view_as<int>(client)--);
-}
-
-stock bool operator<(Client client, int value)
-{
-	return view_as<int>(client) < value;
-}
-
-stock bool operator<=(Client client, int value)
-{
-	return view_as<int>(client) <= value;
-}
-
-stock bool operator==(Client client, int value)
-{
-	return view_as<int>(client) == value;
-}
-
-stock bool operator>=(Client client, int value)
-{
-	return view_as<int>(client) >= value;
 }
 
 methodmap Client < CBasePlayer
@@ -137,79 +97,79 @@ methodmap Client < CBasePlayer
 
 	public int GetProp( PropType propType, const char[] propName, int size = 4, int element = 0 )
 	{
-		return GetEntProp( this, propType, propName, size, element );
+		return GetEntProp( this.Index, propType, propName, size, element );
 	}
 
 	public int GetPropEnt( PropType propType, const char[] propName, int element = 0 )
 	{
-		return GetEntPropEnt( this, propType, propName, element );
+		return GetEntPropEnt( this.Index, propType, propName, element );
 	}
 
 	public void PrintToConsole(const char[] format, any ...)
 	{
 		string buffer;
 		VFormat(buffer.Value, buffer.Size(), format, 3);
-		PrintToConsole(this, buffer.Value);
+		PrintToConsole(this.Index, buffer.Value);
 	}
 
 	public void PrintToChat(const char[] format, any ...)
 	{
 		string buffer;
 		VFormat(buffer.Value, buffer.Size(), format, 3);
-		PrintToChat(this, buffer.Value);
+		PrintToChat(this.Index, buffer.Value);
 	}
 
 	public void ReplyToCommand(const char[] format, any ...)
 	{
 		string buffer;
 		VFormat(buffer.Value, buffer.Size(), format, 3);
-		ReplyToCommand(this, buffer.Value);
+		ReplyToCommand(this.Index, buffer.Value);
 	}
 
 	public void Teleport(const float origin[3] = NULL_VECTOR, const float angles[3] = NULL_VECTOR, const float velocity[3] = NULL_VECTOR)
 	{
-		TeleportEntity(this, origin, angles, velocity);
+		TeleportEntity(this.Index, origin, angles, velocity);
 	}
 
 	public void GetVelocity(float vecvelocity[3])
 	{
-		GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
+		GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
 	}
 
 	public void GetBaseVelocity(float vec[3])
 	{
-		GetEntPropVector(this, Prop_Data, "m_vecBaseVelocity", vec);
+		GetEntPropVector(this.Index, Prop_Data, "m_vecBaseVelocity", vec);
 	}
 
 	public void GetTargetName(char[] buffer, int length = 64)
 	{
-		GetEntPropString(this, Prop_Data, "m_iName", buffer, length);
+		GetEntPropString(this.Index, Prop_Data, "m_iName", buffer, length);
 	}
 
 	public void SetTargetName(char[] buffer)
 	{
-		SetEntPropString(this, Prop_Data, "m_iName", buffer);
+		SetEntPropString(this.Index, Prop_Data, "m_iName", buffer);
 	}
 
 	public void GetClassName(char[] buffer, int length = 64)
 	{
-		GetEntityClassname(this, buffer, length);
+		GetEntityClassname(this.Index, buffer, length);
 	}
 
 	public void SetClassName(char[] buffer)
 	{
-		SetEntPropString(this, Prop_Data, "m_iClassname", buffer);
+		SetEntPropString(this.Index, Prop_Data, "m_iClassname", buffer);
 	}
 
 	property MoveType Movetype
 	{
 		public get()
 		{
-			return GetEntityMoveType(this);
+			return GetEntityMoveType(this.Index);
 		}
 		public set(MoveType type)
 		{
-			SetEntityMoveType(this, type);
+			SetEntityMoveType(this.Index, type);
 		}
 	}
 
@@ -217,11 +177,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _LastMoveType[this];
+			return _LastMoveType[this.Index];
 		}
 		public set(MoveType type)
 		{
-			_LastMoveType[this] = type;
+			_LastMoveType[this.Index] = type;
 		}
 	}
 
@@ -229,7 +189,7 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return Shavit_GetBhopStyle(this);
+			return Shavit_GetBhopStyle(this.Index);
 		}
 	}
 
@@ -237,7 +197,7 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return Shavit_GetClientTrack(this);
+			return Shavit_GetClientTrack(this.Index);
 		}
 	}
 
@@ -245,11 +205,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _Enabled[this];
+			return _Enabled[this.Index];
 		}
 		public set(bool value)
 		{
-			_Enabled[this] = value;
+			_Enabled[this.Index] = value;
 			ToggleTAS(this);
 		}
 	}
@@ -258,11 +218,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return !!GetEntProp(this, Prop_Send, "m_bDucked");
+			return !!GetEntProp(this.Index, Prop_Send, "m_bDucked");
 		}
 		public set(bool value)
 		{
-			SetEntProp(this, Prop_Send, "m_bDucked", value);
+			SetEntProp(this.Index, Prop_Send, "m_bDucked", value);
 		}
 	}
 
@@ -270,11 +230,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return !!GetEntProp(this, Prop_Send, "m_bDucking");
+			return !!GetEntProp(this.Index, Prop_Send, "m_bDucking");
 		}
 		public set(bool value)
 		{
-			SetEntProp(this, Prop_Send, "m_bDucking", value);
+			SetEntProp(this.Index, Prop_Send, "m_bDucking", value);
 		}
 	}
 
@@ -282,11 +242,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntPropFloat(this, Prop_Send, "m_flStamina");
+			return GetEntPropFloat(this.Index, Prop_Send, "m_flStamina");
 		}
 		public set(float value)
 		{
-			SetEntProp(this, Prop_Send, "m_flStamina", value);
+			SetEntProp(this.Index, Prop_Send, "m_flStamina", value);
 		}
 	}
 
@@ -294,11 +254,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntPropFloat(this, Prop_Send, "m_flDuckSpeed");
+			return GetEntPropFloat(this.Index, Prop_Send, "m_flDuckSpeed");
 		}
 		public set(float value)
 		{
-			SetEntProp(this, Prop_Send, "m_flDuckSpeed", value);
+			SetEntProp(this.Index, Prop_Send, "m_flDuckSpeed", value);
 		}
 	}
 
@@ -308,22 +268,22 @@ methodmap Client < CBasePlayer
 		{
 			if(Server.IsCSS)
 			{
-				GetEntPropFloat(this, Prop_Send, "m_flDucktime");
+				GetEntPropFloat(this.Index, Prop_Send, "m_flDucktime");
 			}
 			else
 			{
-				GetEntPropFloat(this, Prop_Send, "m_flDuckAmount");
+				GetEntPropFloat(this.Index, Prop_Send, "m_flDuckAmount");
 			}
 		}
 		public set(float value)
 		{
 			if(Server.IsCSS)
 			{
-				SetEntPropFloat(this, Prop_Send, "m_flDucktime", value);
+				SetEntPropFloat(this.Index, Prop_Send, "m_flDucktime", value);
 			}
 			else
 			{
-				SetEntPropFloat(this, Prop_Send, "m_flDuckAmount", value);
+				SetEntPropFloat(this.Index, Prop_Send, "m_flDuckAmount", value);
 			}
 		}
 	}
@@ -332,11 +292,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntPropEnt(this, Prop_Send, "m_hGroundEntity");
+			return GetEntPropEnt(this.Index, Prop_Send, "m_hGroundEntity");
 		}
 		public set(int value)
 		{
-			SetEntPropEnt(this, Prop_Data, "m_hGroundEntity", value);
+			SetEntPropEnt(this.Index, Prop_Data, "m_hGroundEntity", value);
 		}
 	}
 
@@ -344,11 +304,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntityFlags(this);
+			return GetEntityFlags(this.Index);
 		}
 		public set(int value)
 		{
-			SetEntityFlags(this, value);
+			SetEntityFlags(this.Index, value);
 		}
 	}
 
@@ -356,11 +316,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _Frames[this];
+			return _Frames[this.Index];
 		}
 		public set(ArrayList value)
 		{
-			_Frames[this] = value;
+			_Frames[this.Index] = value;
 		}
 	}
 
@@ -368,11 +328,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _ForceJump[this];
+			return _ForceJump[this.Index];
 		}
 		public set(bool value)
 		{
-			_ForceJump[this] = value;
+			_ForceJump[this.Index] = value;
 		}
 	}
 
@@ -380,11 +340,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _Buttons[this];
+			return _Buttons[this.Index];
 		}
 		public set(int value)
 		{
-			_Buttons[this] = value;
+			_Buttons[this.Index] = value;
 		}
 	}
 
@@ -392,11 +352,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _NextFrame[this];
+			return _NextFrame[this.Index];
 		}
 		public set(float value)
 		{
-			_NextFrame[this] = value;
+			_NextFrame[this.Index] = value;
 		}
 	}
 
@@ -405,7 +365,7 @@ methodmap Client < CBasePlayer
 		public get()
 		{
 			float vecvelocity[3];
-			GetEntPropVector(this, Prop_Data, "m_vecVelocity", vecvelocity);
+			GetEntPropVector(this.Index, Prop_Data, "m_vecVelocity", vecvelocity);
 			vecvelocity[2] = 0.0;
 			return GetVectorLength(vecvelocity);
 		}
@@ -423,11 +383,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _AutoJump[this];
+			return _AutoJump[this.Index];
 		}
 		public set(bool value)
 		{
-			_AutoJump[this] = value;
+			_AutoJump[this.Index] = value;
 		}
 	}
 
@@ -435,11 +395,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetXutaxStrafe(this);
+			return GetXutaxStrafe(this.Index);
 		}
 		public set(bool value)
 		{
-			SetXutaxStrafe(this, value);
+			SetXutaxStrafe(this.Index, value);
 		}
 	}
 
@@ -447,11 +407,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _UseThisFrame[this];
+			return _UseThisFrame[this.Index];
 		}
 		public set(bool value)
 		{
-			_UseThisFrame[this] = value;
+			_UseThisFrame[this.Index] = value;
 		}
 	}
 
@@ -459,11 +419,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _FastWalk[this];
+			return _FastWalk[this.Index];
 		}
 		public set(bool value)
 		{
-			_FastWalk[this] = value;
+			_FastWalk[this.Index] = value;
 		}
 	}
 
@@ -471,11 +431,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetEntPropFloat(this, Prop_Data, "m_flLaggedMovementValue");
+			return GetEntPropFloat(this.Index, Prop_Data, "m_flLaggedMovementValue");
 		}
 		public set(float value)
 		{
-			SetEntPropFloat(this, Prop_Data, "m_flLaggedMovementValue", value);
+			SetEntPropFloat(this.Index, Prop_Data, "m_flLaggedMovementValue", value);
 		}
 	}
 
@@ -483,24 +443,24 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _TimeScale[this];
+			return _TimeScale[this.Index];
 		}
 		public set(float value)
 		{
 			if(value < 0.1)
 			{
-				_TimeScale[this] = 0.1;
+				_TimeScale[this.Index] = 0.1;
 			}
 			else if(value > 1.0)
 			{
-				_TimeScale[this] = 1.0;
+				_TimeScale[this.Index] = 1.0;
 			}
 			else
 			{
-				_TimeScale[this] = value;
+				_TimeScale[this.Index] = value;
 			}
 
-			Shavit_SetClientTimescale(this, _TimeScale[this]);
+			Shavit_SetClientTimescale(this.Index, _TimeScale[this.Index]);
 			this.LaggedMovementValue = 1.0;
 		}
 	}
@@ -509,14 +469,14 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _XutaxType[this];
+			return _XutaxType[this.Index];
 		}
 		public set(int value)
 		{
 			value %= XutaxType.Size;
 
-			SetXutaxType(this, value);
-			_XutaxType[this] = value;
+			SetXutaxType(this.Index, value);
+			_XutaxType[this.Index] = value;
 		}
 	}
 
@@ -524,11 +484,11 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return _UseCheckpoints[this] == 1;
+			return _UseCheckpoints[this.Index] == 1;
 		}
 		public set(bool value)
 		{
-			_UseCheckpoints[this] = value;
+			_UseCheckpoints[this.Index] = value;
 		}
 	}
 
@@ -536,13 +496,13 @@ methodmap Client < CBasePlayer
 	{
 		public get()
 		{
-			return GetXutaxPower(this);
+			return GetXutaxPower(this.Index);
 		}
 		public set(float value)
 		{
 			if(value >= 0.0 && value <= 2.0)
 			{
-				SetXutaxPower(this, value);
+				SetXutaxPower(this.Index, value);
 			}
 		}
 	}
@@ -553,22 +513,22 @@ methodmap Client < CBasePlayer
 		{
 			if(this.UseCheckpoints)
 			{
-				return Shavit_GetCurrentCheckpoint(this);
+				return Shavit_GetCurrentCheckpoint(this.Index);
 			}
 			else
 			{
-				return _CurrentCheckpoint[this];
+				return _CurrentCheckpoint[this.Index];
 			}
 		}
 		public set(int value)
 		{
 			if(this.UseCheckpoints)
 			{
-				Shavit_SetCurrentCheckpoint(this, value);
+				Shavit_SetCurrentCheckpoint(this.Index, value);
 			}
 			else
 			{
-				_CurrentCheckpoint[this] = value;
+				_CurrentCheckpoint[this.Index] = value;
 			}
 		}
 	}
@@ -579,18 +539,18 @@ methodmap Client < CBasePlayer
 		{
 			if(this.UseCheckpoints)
 			{
-				return Shavit_GetTotalCheckpoints(this);
+				return Shavit_GetTotalCheckpoints(this.Index);
 			}
 			else
 			{
-				return _TotalCheckpoints[this];
+				return _TotalCheckpoints[this.Index];
 			}
 		}
 		public set(int value)
 		{
 			if(!this.UseCheckpoints)
 			{
-				_TotalCheckpoints[this] = value;
+				_TotalCheckpoints[this.Index] = value;
 			}
 		}
 	}
@@ -599,7 +559,7 @@ methodmap Client < CBasePlayer
 	{
 		if(this.UseCheckpoints)
 		{
-			this.CurrentCheckpoint = Shavit_SaveCheckpoint(this);
+			this.CurrentCheckpoint = Shavit_SaveCheckpoint(this.Index);
 		}
 	}
 
@@ -607,7 +567,7 @@ methodmap Client < CBasePlayer
 	{
 		if(this.UseCheckpoints)
 		{
-			Shavit_TeleportToCheckpoint(this, this.CurrentCheckpoint);
+			Shavit_TeleportToCheckpoint(this.Index, this.CurrentCheckpoint);
 		}
 	}
 
@@ -618,20 +578,20 @@ methodmap Client < CBasePlayer
 		string_64 display;
 
 		// Title
-		display.Format("%T\n ", "Pick Your Type", this);
+		display.Format("%T\n ", "Pick Your Type", this.Index);
 		menu.SetTitle(display.Value);
 
 		// Rewind TAS
-		display.Format("%T ", "Rewind TAS", this);
+		display.Format("%T ", "Rewind TAS", this.Index);
 		menu.AddItem("0", display.Value);
 
 		// Checkpoint TAS
-		display.Format("%T ", "Checkpoint TAS", this);
+		display.Format("%T ", "Checkpoint TAS", this.Index);
 		menu.AddItem("1", display.Value);
 
 		menu.Pagination = MENU_NO_PAGINATION;
 		menu.ExitButton = true;
-		menu.Display(this, MENU_TIME_FOREVER);
+		menu.Display(this.Index, MENU_TIME_FOREVER);
 	}
 
 	public void OpenCheckPointMenu()
@@ -640,64 +600,64 @@ methodmap Client < CBasePlayer
 		string_64 display;
 
 		// title
-		display.Format("%T\n ", "TAS Menu", this);
+		display.Format("%T\n ", "TAS Menu", this.Index);
 		panel.SetTitle(display.Value);
 
 		// save
-		display.Format("%T", "MiscCheckpointSave", this, this.TotalCheckpoints + 1);
+		display.Format("%T", "MiscCheckpointSave", this.Index, this.TotalCheckpoints + 1);
 		panel.DrawItem(display.Value);
 
 		// teleport
 		if(this.TotalCheckpoints > 0)
 		{
-			display.Format("%T", "MiscCheckpointTeleport", this, this.CurrentCheckpoint);
+			display.Format("%T", "MiscCheckpointTeleport", this.Index, this.CurrentCheckpoint);
 			panel.DrawItem(display.Value);
 		}
 		else
 		{
-			display.Format("%T", "MiscCheckpointTeleport", this, 1);
+			display.Format("%T", "MiscCheckpointTeleport", this.Index, 1);
 			panel.DrawItem(display.Value, ITEMDRAW_DISABLED);
 		}
 
 		// previous
-		display.Format("%T", "MiscCheckpointPrevious", this);
+		display.Format("%T", "MiscCheckpointPrevious", this.Index);
 		panel.DrawItem(display.Value);
 		// next
-		display.Format("%T", "MiscCheckpointNext", this);
+		display.Format("%T", "MiscCheckpointNext", this.Index);
 		panel.DrawItem(display.Value);
 
 		panel.DrawItem(" ", ITEMDRAW_RAWLINE);
 
 
 		// --Timescale
-		display.Format("--%T", "Timescale", this);
+		display.Format("--%T", "Timescale", this.Index);
 		panel.DrawItem(display.Value);
 
 		// Current Timescale
-		display.Format("%T", "Current Timescale", this, this.TimeScale + 0.001);
+		display.Format("%T", "Current Timescale", this.Index, this.TimeScale + 0.001);
 		panel.DrawItem(display.Value, ITEMDRAW_RAWLINE);
 
 		// ++Timescale
-		display.Format("++%T", "Timescale", this);
+		display.Format("++%T", "Timescale", this.Index);
 		panel.DrawItem(display.Value);
 
 		panel.DrawItem(" ", ITEMDRAW_RAWLINE);
 
 		// Strafehack Settings
-		display.Format("%T", "Strafehack Settings", this);
+		display.Format("%T", "Strafehack Settings", this.Index);
 		panel.DrawItem(display.Value);
 
 		// Autojump
-		display.Format("%T", "Autojump", this, (this.AutoJump ? "X" : " "));
+		display.Format("%T", "Autojump", this.Index, (this.AutoJump ? "X" : " "));
 		panel.DrawItem(display.Value);
 
 		panel.DrawItem(" ", ITEMDRAW_RAWLINE);
 
 		// Exit
-		display.Format("%T", "Exit", this);
+		display.Format("%T", "Exit", this.Index);
 		panel.DrawItem(display.Value);
 
-		panel.Send(this, MenuHandler_TASCheckPoint, MENU_TIME_FOREVER);
+		panel.Send(this.Index, MenuHandler_TASCheckPoint, MENU_TIME_FOREVER);
 		delete panel;
 	}
 
@@ -715,7 +675,7 @@ methodmap Client < CBasePlayer
 
 		// temp setup to hide desiscion menu
 		this.UseCheckpoints = true;
-		switch(_UseCheckpoints[this])
+		switch(_UseCheckpoints[this.Index])
 		{
 			case 1:
 			{
@@ -739,51 +699,51 @@ methodmap Client < CBasePlayer
 		string_64 display;
 
 		// Title
-		display.Format("%T\n ", "Strafehack Settings", this);
+		display.Format("%T\n ", "Strafehack Settings", this.Index);
 		panel.SetTitle(display.Value);
 
 		// Strafe Hack
-		display.Format("%T\n ", "Strafe hack", this, this.StrafeHack ? "X" : " ");
+		display.Format("%T\n ", "Strafe hack", this.Index, this.StrafeHack ? "X" : " ");
 		panel.DrawItem(display.Value);
 
 		// --Power
-		display.Format("--%T", "Power", this);
+		display.Format("--%T", "Power", this.Index);
 		panel.DrawItem(display.Value);
 
-		display.Format("%T", "Current Power", this, (this.Power * 100.0) + 0.01);
+		display.Format("%T", "Current Power", this.Index, (this.Power * 100.0) + 0.01);
 		panel.DrawItem(display.Value, ITEMDRAW_RAWLINE);
 
 		// ++Power
-		display.Format("++%T", "Power", this);
+		display.Format("++%T", "Power", this.Index);
 		panel.DrawItem(display.Value);
 
 		// Type
 		if(this.Type == XutaxType.Normal)
 		{
-			display.Format("%T", "Type Normal", this);
+			display.Format("%T", "Type Normal", this.Index);
 		}
 		else if(this.Type == XutaxType.Surf)
 		{
-			display.Format("%T", "Type Surf", this);
+			display.Format("%T", "Type Surf", this.Index);
 		}
 		else if(this.Type == XutaxType.Manual)
 		{
-			display.Format("%T", "Type Manual", this);
+			display.Format("%T", "Type Manual", this.Index);
 		}
 
 		panel.DrawItem(display.Value);
 
 		// Back
 		panel.CurrentKey = 7;
-		display.Format("%T", "Back", this);
+		display.Format("%T", "Back", this.Index);
 		panel.DrawItem(display.Value);
 
 		// Exit
 		panel.CurrentKey = Server.IsCSGO ? 9 : 10;
-		display.Format("%T", "Exit", this);
+		display.Format("%T", "Exit", this.Index);
 		panel.DrawItem(display.Value);
 
-		panel.Send(this, MenuHandler_StrafehackSettings, MENU_TIME_FOREVER);
+		panel.Send(this.Index, MenuHandler_StrafehackSettings, MENU_TIME_FOREVER);
 	}
 
 	public void ResetVariables()
@@ -793,39 +753,39 @@ methodmap Client < CBasePlayer
 			return;
 		}
 
-		_TimeScale[this] = 1.0;
+		_TimeScale[this.Index] = 1.0;
 		this.Enabled = false;
 		this.FastWalk = true;
 		this.Type = XutaxType.Surf;
-		_UseCheckpoints[this] = -1;
+		_UseCheckpoints[this.Index] = -1;
 	}
 
 	public void DoFastWalk(float vel[3])
 	{
-		bool direction = _FastWalkDirection[this];
+		bool direction = _FastWalkDirection[this.Index];
 
 		if(this.Buttons & IN_FORWARD && !(this.Buttons & (IN_MOVELEFT | IN_MOVERIGHT)))
 		{
 			vel[1] = direction ? PERFSPEEDHACK : -PERFSPEEDHACK;
 		}
 
-		_FastWalkDirection[this] = !direction;
+		_FastWalkDirection[this.Index] = !direction;
 	}
 
 	public void DoAutoJump(int& buttons)
 	{
-		if(this.ForceJump)
-		{
-			if(this.OnGround)
-			{
-				buttons |= IN_JUMP;
-				this.ForceJump = false;
-			}
-			else
-			{
-				this.ForceJump = false;
-			}
-		}
+		// if(this.ForceJump)
+		// {
+		// 	if(this.OnGround)
+		// 	{
+		// 		buttons |= IN_JUMP;
+		// 		this.ForceJump = false;
+		// 	}
+		// 	else
+		// 	{
+		// 		this.ForceJump = false;
+		// 	}
+		// }
 	}
 
 	public Client GetHUDTarget()
@@ -858,7 +818,7 @@ stock void ToggleTAS(Client client)
 		if(g_cSetCheats.BoolValue)
 		{
 			// Keeping this as it's TAS, should honestly have access to everything available
-			Server.Cheats.ReplicateToClient(client, "2");
+			Server.Cheats.ReplicateToClient(client.Index, "2");
 		}
 		_UseCheckpoints[client] = -1;
 		RequestFrame(Frame_OpenMenu, client.Serial);
@@ -870,7 +830,7 @@ stock void ToggleTAS(Client client)
 		{
 			string_8 convar;
 			convar.FromInt(Server.GetDefaultCheats());
-			Server.Cheats.ReplicateToClient(client, convar.Value);
+			Server.Cheats.ReplicateToClient(client.Index, convar.Value);
 		}
 	}
 }
@@ -896,7 +856,7 @@ public int MenuHandler_TASCheckPoint(Menu menu, MenuAction action, int param1, i
 				return 0;
 			}
 
-			EmitSoundToClient(client, "buttons/button14.wav");
+			EmitSoundToClient(client.Index, "buttons/button14.wav");
 			switch(param2)
 			{
 				case 1: // SAVE CHECKPOINT
@@ -934,7 +894,7 @@ public int MenuHandler_TASCheckPoint(Menu menu, MenuAction action, int param1, i
 				}
 				case 9:
 				{
-					EmitSoundToClient(client, "buttons/combine_button7.wav");
+					EmitSoundToClient(client.Index, "buttons/combine_button7.wav");
 					return 0;
 				}
 			}
@@ -990,7 +950,7 @@ public int MenuHandler_StrafehackSettings(Menu menu, MenuAction action, int para
 				return 0;
 			}
 
-			EmitSoundToClient(client, "buttons/button14.wav");
+			EmitSoundToClient(client.Index, "buttons/button14.wav");
 			switch(param2)
 			{
 				case 1: // strafehack enabled
@@ -1016,7 +976,7 @@ public int MenuHandler_StrafehackSettings(Menu menu, MenuAction action, int para
 				}
 				default:
 				{
-					EmitSoundToClient(client, "buttons/combine_button7.wav");
+					EmitSoundToClient(client.Index, "buttons/combine_button7.wav");
 					return 0;
 				}
 			}
@@ -1091,7 +1051,7 @@ enum struct TASFrame
 
 		timer_snapshot_t snapshot;
 
-		Shavit_SaveSnapshot(client, snapshot);
+		Shavit_SaveSnapshot(client.Index, snapshot);
 
 		this.time = snapshot.fCurrentTime;
 		this.jumps = snapshot.iJumps;
@@ -1109,14 +1069,14 @@ enum struct TASFrame
 
 		if(!client.IsAlive)
 		{
-			// Shavit_PrintToChat(client, "%T", "CommandAlive", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+			// Shavit_PrintToChat(client.Index, "%T", "CommandAlive", client.Index, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 			return;
 		}
 
-		if(Shavit_InsideZone(client, Zone_Start, -1))
+		if(Shavit_InsideZone(client.Index, Zone_Start, -1))
 		{
-			Shavit_StopTimer(client);
+			Shavit_StopTimer(client.Index);
 		}
 
 		MoveType mt = this.movetype;
@@ -1152,8 +1112,8 @@ enum struct TASFrame
 		snapshot.iMeasuredJumps = snapshot.iJumps;
 		snapshot.iPerfectJumps = snapshot.iJumps;
 
-		Shavit_LoadSnapshot(client, snapshot);
-		Shavit_ResumeTimer(client);
+		Shavit_LoadSnapshot(client.Index, snapshot);
+		Shavit_ResumeTimer(client.Index);
 
 		float vel[3];
 		AddVectors(vel, this.basevelocity, this.velocity);
