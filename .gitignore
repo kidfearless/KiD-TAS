@@ -15,5 +15,6 @@
 !scripting/xutax-autostrafe.sp
 !compiled
 !compile.bat
+!translations/*
 !.gitignore
 # Except for whitelisted files:

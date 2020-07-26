@@ -451,10 +451,19 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		return Plugin_Continue;
 	}
 
-	bool bOnGround = !(buttons & IN_JUMP) && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
+	static int s_iOnGroundCount[MAXPLAYERS+1];
+
+	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
+	{
+		s_iOnGroundCount[client]++;
+	}
+	else
+	{
+		s_iOnGroundCount[client] = 0;
+	}
 
 	if (IsPlayerAlive(client)
-		&& !bOnGround
+		&& s_iOnGroundCount[client] <= 1
 		&& !(GetEntityMoveType(client) & MOVETYPE_LADDER)
 		&& (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
 	{
