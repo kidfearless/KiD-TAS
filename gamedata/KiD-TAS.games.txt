@@ -55,7 +55,7 @@
 
 			"m_surfaceFriction"
 			{
-				"windows"	"4660"
+				"windows"	"4716"
 				"linux"		"4684"
 			}
 		}
