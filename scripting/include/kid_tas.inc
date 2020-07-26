@@ -813,6 +813,10 @@ methodmap Client < CBasePlayer
 
 stock void ToggleTAS(Client client)
 {
+	if(!client.IsValid())
+	{
+		return;
+	}
 	if(client.Enabled)
 	{
 		if(g_cSetCheats.BoolValue)
