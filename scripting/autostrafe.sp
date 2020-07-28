@@ -30,7 +30,7 @@ public Plugin myinfo =
 	name = "Perfect autostrafe",
 	author = "xutaxkamay",
 	description = "",
-	version = "1.1",
+	version = "1.2",
 	url = "https://steamcommunity.com/id/xutaxkamay/"
 };
 
@@ -73,26 +73,34 @@ public void OnPluginStart()
 	g_iSurfaceFrictionOffset = gamedata.GetOffset("m_surfaceFriction");
 	delete gamedata;
 
-	if(g_iSurfaceFrictionOffset <= 0)
+	if(g_iSurfaceFrictionOffset == -1)
 	{
 		LogError("[XUTAX] Invalid offset supplied, defaulting friction values");
 	}
 	if(g_Game == Engine_CSGO)
 	{
-		// g_cFrictionOffset = new Convar("xutax_friction_offset", "4680", "Surface friction offset");
 		g_fMaxMove = 450.0;
 		ConVar sv_air_max_wishspeed = FindConVar("sv_air_max_wishspeed");
 		sv_air_max_wishspeed.AddChangeHook(OnWishSpeedChanged);
 		g_flAirSpeedCap = sv_air_max_wishspeed.FloatValue;
+		if(g_iSurfaceFrictionOffset != -1)
+		{
+			g_iSurfaceFrictionOffset = FindSendPropInfo("CBasePlayer", "m_ubEFNoInterpParity") - g_iSurfaceFrictionOffset;
+		}
 	}
 	else if(g_Game == Engine_CSS)
 	{
-		// saved for later use
+		if(g_iSurfaceFrictionOffset != -1)
+		{
+			g_iSurfaceFrictionOffset += FindSendPropInfo("CBasePlayer", "m_szLastPlaceName");
+		}
 	}
 	else
 	{
 		SetFailState("This plugin is for CSGO/CSS only.");
 	}
+
+	RegAdminCmd("sm_xutax_scan", Command_ScanOffsets, ADMFLAG_CHEATS, "Scan for possible offset locations");
 
 	g_ConVar_AutoFind_Offset = new Convar("xutax_find_offsets", "1", "Attempt to autofind offsets", _, true, 0.0, true, 1.0);
 
@@ -451,7 +459,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		return Plugin_Continue;
 	}
 
-	static int s_iOnGroundCount[MAXPLAYERS+1];
+	static int s_iOnGroundCount[MAXPLAYERS+1] = {1, ...};
 
 	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
 	{
@@ -490,7 +498,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		if(g_iSurfaceFrictionOffset > 0)
 		{
 			flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
-			if(g_ConVar_AutoFind_Offset.BoolValue && !(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
+			if(g_ConVar_AutoFind_Offset.BoolValue && s_iOnGroundCount[client] == 0 && !(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
 			{
 				FindNewFrictionOffset(client);
 			}
@@ -547,19 +555,55 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	return Plugin_Continue;
 }
 
-void FindNewFrictionOffset(int client)
+stock void FindNewFrictionOffset(int client, bool logOnly = false)
 {
-	for(int i = 1; i <= 128; ++i)
+	if(g_Game == Engine_CSGO)
 	{
-		float friction = GetEntDataFloat(client, g_iSurfaceFrictionOffset + i);
-		if(friction == 0.25 || friction == 1.0)
+		int startingOffset = FindSendPropInfo("CBasePlayer", "m_ubEFNoInterpParity");
+		for(int i = 16; i >= -128; --i)
 		{
-			g_iSurfaceFrictionOffset += i;
-
-			LogError("[XUTAX] Current offset is out of date. Please update to new offset: %i", g_iSurfaceFrictionOffset);
-			break;
+			float friction = GetEntDataFloat(client, startingOffset + i);
+			if(friction == 0.25 || friction == 1.0)
+			{
+				if(logOnly)
+				{
+					PrintToConsole(client, "Found offset canidate: %i", i * -1);
+				}
+				else
+				{
+					g_iSurfaceFrictionOffset = startingOffset - i;
+					LogError("[XUTAX] Current offset is out of date. Please update to new offset: %i", i * -1);
+				}
+			}
 		}
 	}
+	else
+	{
+		int startingOffset = FindSendPropInfo("CBasePlayer", "m_szLastPlaceName");
+		for(int i = 1; i <= 128; ++i)
+		{
+			float friction = GetEntDataFloat(client, startingOffset + i);
+			if(friction == 0.25 || friction == 1.0)
+			{
+				if(logOnly)
+				{
+					PrintToConsole(client, "Found offset canidate: %i", i);
+				}
+				else
+				{
+					g_iSurfaceFrictionOffset = startingOffset + i;
+					LogError("[XUTAX] Current offset is out of date. Please update to new offset: %i", i);
+				}
+			}
+		}
+	}
+}
+
+public Action Command_ScanOffsets(int client, int args)
+{
+	FindNewFrictionOffset(client, .logOnly = true);
+
+	return Plugin_Handled;
 }
 
 // natives
