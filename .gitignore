@@ -3,7 +3,7 @@
 
 !gamedata/KiD-TAS.games.txt
 !scripting/include/thelpers/**
-!scripting/include/string_test.inc
+!scripting/include/strings_struct.inc
 !scripting/include/strings_include.inc
 !scripting/include/kid_tas.inc
 !scripting/include/kid_tas_api.inc
@@ -15,5 +15,6 @@
 !scripting/xutax-autostrafe.sp
 !compiled
 !compile.bat
+!translations/*
 !.gitignore
 # Except for whitelisted files:

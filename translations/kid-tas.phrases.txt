@@ -1,0 +1,63 @@
+"Phrases"
+{
+	"TAS Menu"
+	{
+		"en"		"TAS Menu"
+	}
+	"Timescale"
+	{
+		"en"		"Timescale"
+	}
+	"Current Timescale"
+	{
+		"#format"	"{1:.1f}"
+		"en"		"Current Timescale: {1}"
+	}
+	"Checkpoint TAS"
+	{
+		"en"		"Checkpoint TAS"
+	}
+	"Strafehack Settings"
+	{
+		"en"		"Strafehack Settings"
+	}
+	"Strafe hack"
+	{
+		"#format"	"{1:s}"
+		"en"		"[{1}] Strafe hack"
+	}
+	"Power"
+	{
+		"en"		"Power"
+	}
+	"Current Power"
+	{
+		"#format"	"{1:.1f}"
+		"en"		"Current Power: {1}"
+	}
+	"Type Normal"
+	{
+		"en"		"Type: Normal"
+	}
+	"Type Surf"
+	{
+		"en"		"Type: Surf"
+	}
+	"Type Manual"
+	{
+		"en"		"Type: Manual"
+	}
+	"Rewind TAS"
+	{
+		"en"		"Rewind TAS"
+	}
+	"Pick Your Type"
+	{
+		"en"		"Pick Your Type"
+	}
+	"Autojump"
+	{
+		"#format"	"{1:s}"
+		"en"		"[{1}] Auto-jump from start zone?"
+	}
+}

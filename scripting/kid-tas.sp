@@ -20,7 +20,7 @@
 #include <dhooks>
 #include <cstrike>
 
-#include <string_test>
+#include <strings_struct>
 #include <convar_class>
 #include <thelpers/thelpers>
 #include <xutaxstrafe>
@@ -153,6 +153,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("common.phrases");
+	LoadTranslations("shavit-common.phrases");
+	LoadTranslations("shavit-misc.phrases");
+	LoadTranslations("kid-tas.phrases");
 	// thanks xutaxkamay for pointing my head back to rngfix after i gave up on it.
 	// dhooks
 	LoadDHooks();
@@ -182,6 +186,8 @@ public void OnPluginStart()
 			}
 		}
 	}
+
+	// OnPluginStarted();
 }
 
 void LoadDHooks()
@@ -259,7 +265,7 @@ public void OnPluginEnd()
 			{
 				string_8 convar;
 				convar.FromInt(Server.GetDefaultCheats());
-				Server.Cheats.ReplicateToClient(client.Index, convar.StringValue);
+				Server.Cheats.ReplicateToClient(client.Index, convar.Value);
 			}
 		}
 	}
@@ -314,21 +320,7 @@ public void Shavit_OnTimeIncrement(int index, timer_snapshot_t snapshot, float &
 
 public void OnPlayerRunCmdPost(int index, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
 {
-	// create a Client from the player they are spectating
-	// So we just check if the target we get back is valid and on TAS.
-	Client client = new Client(index);
-
-	// check for valid client index
-	if(!client.IsValid(.checkIfAlive = false))
-	{
-		// client.PrintToConsole("invalid");
-		return;
-	}
-
-	// if(client.Enabled && !client.IsAlive)
-	// {
-	// 	client.TimeScale = 1.0;
-	// }
+	// Client client = new Client(index);
 }
 
 public void Shavit_OnLeaveZone(int index, int type, int track, int id, int entity, int data)
@@ -346,9 +338,19 @@ public void Shavit_OnLeaveZone(int index, int type, int track, int id, int entit
 public void Shavit_OnStyleChanged(int index, int oldstyle, int newstyle, int track, bool manual)
 {
 	string_128 special;
-	Shavit_GetStyleStrings(newstyle, sSpecialString, special.StringValue, special.Size());
+	Shavit_GetStyleStrings(newstyle, sSpecialString, special.Value, special.Size());
 
 	Client.Create(index).Enabled = special.Includes("TAS");
+}
+
+public Action Shavit_OnCheckPointMenuMade(int index, bool segmented)
+{
+	Client client = new Client(index);
+	if(client.Enabled)
+	{
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
 }
 
 //========================================================================================
@@ -418,61 +420,6 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
  *                                Handlers and Callbacks                                *
  *                                                                                      */
 //========================================================================================
-
-public int MenuHandler_TAS(Menu menu, MenuAction action, int param1, int param2)
-{
-	switch(action)
-	{
-		case MenuAction_Select:
-		{
-			Client client = new Client(param1);
-			string_8 info;
-			info.GetMenuInfo(menu, param2);
-
-			if(!client.Enabled)
-			{
-				return 0;
-			}
-
-			if (info.Equals("cp"))
-			{
-				FakeClientCommand(client.Index, "sm_cpmenu");
-			}
-			else
-			{
-				if (info.Equals("++"))
-				{
-					client.TimeScale += 0.1;
-				}
-				else if (info.Equals("--"))
-				{
-					client.TimeScale -= 0.1;
-				}
-				else if (info.Equals("jmp"))
-				{
-					client.AutoJump = !client.AutoJump;
-				}
-				else if(info.Equals("sh"))
-				{
-					client.StrafeHack = !client.StrafeHack;
-				}
-				else if(info.Equals("ty"))
-				{
-					++client.Type;
-				}
-
-				client.OpenMenu();
-			}
-		}
-
-		case MenuAction_End:
-		{
-			delete menu;
-		}
-	}
-
-	return 0;
-}
 
 public Action Command_TasMenu(int index, int args)
 {
