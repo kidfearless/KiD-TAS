@@ -524,6 +524,15 @@ methodmap Client < CBasePlayer
 		{
 			if(this.UseCheckpoints)
 			{
+				int total = Shavit_GetTotalCheckpoints(this.Index);
+				if(value > total)
+				{
+					value = total;
+				}
+				if(value < 0)
+				{
+					value = 0;
+				}
 				Shavit_SetCurrentCheckpoint(this.Index, value);
 			}
 			else
