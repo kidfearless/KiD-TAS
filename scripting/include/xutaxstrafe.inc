@@ -69,3 +69,26 @@ native void SetXutaxPower(int client, float value);
  * @return				The current strafehack power.
  */
 native float GetXutaxPower(int client);
+
+public SharedPlugin __pl_xutax_strafe =
+{
+	name = "xutax-autostrafe",
+	file = "xutax-autostrafe.smx",
+	#if defined REQUIRE_PLUGIN
+	required = 1,
+	#else
+	required = 0,
+	#endif
+};
+
+#if !defined REQUIRE_PLUGIN
+public void __pl_xutax_strafe_SetNTVOptional()
+{
+	MarkNativeAsOptional("SetXutaxStrafe");
+	MarkNativeAsOptional("GetXutaxStrafe");
+	MarkNativeAsOptional("SetXutaxType");
+	MarkNativeAsOptional("GetXutaxType");
+	MarkNativeAsOptional("SetXutaxPower");
+	MarkNativeAsOptional("GetXutaxPower");
+}
+#endif
