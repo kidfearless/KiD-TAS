@@ -290,7 +290,7 @@ public void OnClientDisconnect(int index)
 	client.ResetVariables();
 }
 
-public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings, int mouse[2])
+public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
 {
 	Client client = new Client(index);
 	client.Buttons = buttons;
