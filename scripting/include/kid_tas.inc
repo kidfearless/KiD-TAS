@@ -567,7 +567,9 @@ methodmap Client < CBasePlayer
 	{
 		if(this.UseCheckpoints)
 		{
+			float timescale = this.TimeScale;
 			Shavit_TeleportToCheckpoint(this.Index, this.CurrentCheckpoint);
+			this.TimeScale = timescale;
 		}
 	}
 

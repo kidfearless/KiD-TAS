@@ -314,7 +314,7 @@ public Action Shavit_OnUserCmdPre(int index, int &buttons, int &impulse, float v
 	return Plugin_Continue;
 }
 
-public void Shavit_OnTimeIncrement(int index, timer_snapshot_t snapshot, float &time, stylesettings_t stylesettings)
+public void Shavit_OnTimeIncrement(int index, timer_snapshot_t snapshot, float &time)
 {
 }
 
